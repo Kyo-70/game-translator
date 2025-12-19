@@ -42,6 +42,7 @@ api_config.json
 *.db
 *.sqlite
 *.sqlite3
+*.ini
 
 # Backup files
 backups/

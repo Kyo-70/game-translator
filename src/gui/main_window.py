@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                               QHeaderView, QLineEdit, QDialog, QTextEdit, QGroupBox,
                               QTabWidget, QSpinBox, QCheckBox, QSplitter, QFrame,
                               QStatusBar, QToolBar, QMenu, QMenuBar, QApplication)
-from PySide6.QtCore import Qt, QThread, Signal, QTimer
+from PySide6.QtCore import Qt, QThread, Signal, QTimer, QSettings
 from PySide6.QtGui import QPalette, QColor, QFont, QAction, QIcon, QKeySequence, QShortcut
 
 # Imports com tratamento de erro para funcionar tanto como script quanto executável
@@ -63,6 +63,10 @@ except ImportError:
 # ============================================================================
 # UI CONSTANTS
 # ============================================================================
+
+# Settings para persistência
+SETTINGS_ORG_NAME = "GameTranslator"
+SETTINGS_APP_NAME = "GameTranslator"
 
 # Cores para linhas da tabela (tema escuro)
 class TableColors:
@@ -1043,6 +1047,9 @@ class MainWindow(QMainWindow):
         # Configura interface
         self.setWindowTitle("Game Translator - Sistema de Tradução para Jogos e Mods")
         self.setGeometry(100, 100, 1300, 800)
+        
+        # Restaura configurações da janela se existirem
+        self._restore_window_settings()
         
         # Aplica tema escuro
         self._apply_dark_theme()
@@ -2416,6 +2423,29 @@ class MainWindow(QMainWindow):
             "<p>Desenvolvido por <b>Manus AI</b></p>"
         )
     
+    def _save_window_settings(self):
+        """Salva a geometria e estado da janela"""
+        settings = QSettings(SETTINGS_ORG_NAME, SETTINGS_APP_NAME)
+        settings.setValue("geometry", self.saveGeometry())
+        settings.setValue("windowState", self.saveState())
+        app_logger.info("Configurações da janela salvas")
+    
+    def _restore_window_settings(self):
+        """Restaura a geometria e estado da janela"""
+        settings = QSettings(SETTINGS_ORG_NAME, SETTINGS_APP_NAME)
+        
+        # Restaura geometria se existir
+        geometry = settings.value("geometry")
+        if geometry:
+            self.restoreGeometry(geometry)
+            app_logger.info("Geometria da janela restaurada")
+        
+        # Restaura estado da janela se existir
+        window_state = settings.value("windowState")
+        if window_state:
+            self.restoreState(window_state)
+            app_logger.info("Estado da janela restaurado")
+    
     def closeEvent(self, event):
         """Evento de fechamento da janela"""
         # Verifica se há alterações não salvas
@@ -2433,6 +2463,9 @@ class MainWindow(QMainWindow):
                 if reply == QMessageBox.No:
                     event.ignore()
                     return
+        
+        # Salva configurações da janela
+        self._save_window_settings()
         
         # Fecha conexão com banco de dados
         if self.translation_memory:
