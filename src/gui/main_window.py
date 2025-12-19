@@ -343,15 +343,26 @@ class DatabaseViewerDialog(QDialog):
         
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Interactive)  # Permite ajuste manual pelo usuário
+        header.setSectionResizeMode(2, QHeaderView.Interactive)  # Permite ajuste manual pelo usuário
         header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
         
+        # Define larguras iniciais para as colunas ajustáveis
+        self.table.setColumnWidth(1, 350)  # Texto Original
+        self.table.setColumnWidth(2, 350)  # Tradução
+        
+        # Conecta redimensionamento de coluna para reajustar altura das linhas
+        header.sectionResized.connect(self._auto_adjust_row_heights)
+        
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.itemDoubleClicked.connect(self._on_item_double_clicked)
+        
+        # Adiciona atalho da tecla Delete para excluir
+        delete_shortcut = QShortcut(QKeySequence.Delete, self.table)
+        delete_shortcut.activated.connect(self._delete_selected)
         
         layout.addWidget(self.table)
         
@@ -404,6 +415,9 @@ class DatabaseViewerDialog(QDialog):
             
             # Torna ID não editável
             self.table.item(i, 0).setFlags(self.table.item(i, 0).flags() & ~Qt.ItemIsEditable)
+        
+        # Auto-ajusta altura das linhas após carregar dados
+        self._auto_adjust_row_heights()
     
     def _on_search(self, text):
         """Callback de busca"""
@@ -420,6 +434,63 @@ class DatabaseViewerDialog(QDialog):
     def _on_item_double_clicked(self, item):
         """Callback de duplo clique"""
         self._edit_selected()
+    
+    def _auto_adjust_row_heights(self):
+        """
+        Auto-ajusta a altura das linhas baseado no conteúdo.
+        
+        Calcula a altura necessária para cada linha considerando:
+        - Comprimento do texto nas colunas Original e Tradução
+        - Largura disponível na coluna
+        - Padding adicional para textos longos
+        
+        Aplica altura mínima padrão e aumenta conforme necessário.
+        """
+        # Altura mínima padrão
+        min_height = 30
+        
+        # Calcula a altura de cada linha baseado no conteúdo
+        for row in range(self.table.rowCount()):
+            max_height = min_height
+            
+            # Verifica colunas de texto (Original e Tradução)
+            for col in [1, 2]:  # Apenas colunas de texto original e tradução
+                item = self.table.item(row, col)
+                if item:
+                    text = item.text()
+                    
+                    # Calcula altura baseado no comprimento do texto
+                    # Usa a largura da coluna para estimar quebras de linha
+                    col_width = self.table.columnWidth(col)
+                    
+                    if col_width > 0 and text:
+                        # Estima quantos caracteres cabem por linha
+                        # Usa aproximação de 8 pixels por caractere
+                        chars_per_line = max(1, col_width // 8)
+                        
+                        # Calcula número de linhas necessárias
+                        num_lines = max(1, len(text) // chars_per_line + 1)
+                        
+                        # Altura base por linha de texto (considera fonte e padding)
+                        height_per_line = 20
+                        
+                        # Calcula altura necessária
+                        required_height = num_lines * height_per_line + 10  # +10 para padding
+                        
+                        # Adiciona padding extra para textos muito longos
+                        if len(text) > 200:
+                            required_height += 10
+                        elif len(text) > 100:
+                            required_height += 5
+                        
+                        max_height = max(max_height, required_height)
+            
+            # Define altura máxima razoável para evitar linhas gigantes
+            max_allowed_height = 200
+            final_height = min(max_height, max_allowed_height)
+            
+            # Aplica a altura calculada
+            self.table.setRowHeight(row, final_height)
     
     def _edit_selected(self):
         """Edita tradução selecionada"""
@@ -1280,9 +1351,16 @@ class MainWindow(QMainWindow):
         # Ajusta largura das colunas
         header = table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Interactive)  # Permite ajuste manual pelo usuário
+        header.setSectionResizeMode(2, QHeaderView.Interactive)  # Permite ajuste manual pelo usuário
         header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        
+        # Define larguras iniciais para as colunas ajustáveis
+        table.setColumnWidth(1, 400)  # Texto Original
+        table.setColumnWidth(2, 400)  # Tradução
+        
+        # Conecta redimensionamento de coluna para reajustar altura das linhas
+        header.sectionResized.connect(lambda: self._auto_adjust_row_heights())
         
         # Conecta evento de edição
         table.itemChanged.connect(self.on_translation_edited)
