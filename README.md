@@ -71,6 +71,8 @@ O arquivo `ATUALIZAR.bat` oferece:
 
 ### Interface Moderna
 - **Tema Escuro**: Design profissional e confortável
+- **Copiar/Colar**: Ctrl+C e Ctrl+V para editar traduções em massa no Notepad
+- **Seleção Múltipla**: Selecione e edite várias linhas simultaneamente
 - **Visualizador de Banco**: Veja e edite todas as traduções salvas
 - **Progresso em Tempo Real**: Acompanhe o status das operações
 - **Monitor de Recursos**: Visualize uso de RAM e CPU
@@ -117,8 +119,11 @@ Ao iniciar, o programa solicita um banco de dados:
 | Método | Descrição |
 |--------|-----------|
 | **Manual** | Duplo clique na célula de tradução |
+| **Copiar/Colar** | Ctrl+C para copiar, editar no Bloco de Notas, Ctrl+V para colar |
 | **Memória** | Clique em "⚡ Aplicar Memória" |
 | **API** | Clique em "🤖 Traduzir Auto" |
+
+> 💡 **Novo!** Use **Ctrl+C** e **Ctrl+V** para copiar múltiplas linhas e editar no Notepad! Veja [COPIAR_COLAR.md](COPIAR_COLAR.md) para detalhes.
 
 ### 4. Salvar
 
