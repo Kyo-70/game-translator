@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                               QHeaderView, QLineEdit, QDialog, QTextEdit, QGroupBox,
                               QTabWidget, QSpinBox, QCheckBox, QSplitter, QFrame,
                               QStatusBar, QToolBar, QMenu, QMenuBar, QApplication)
-from PySide6.QtCore import Qt, QThread, Signal, QTimer
+from PySide6.QtCore import Qt, QThread, Signal, QTimer, QSettings
 from PySide6.QtGui import QPalette, QColor, QFont, QAction, QIcon, QKeySequence, QShortcut
 
 # Imports com tratamento de erro para funcionar tanto como script quanto executável
@@ -63,6 +63,19 @@ except ImportError:
 # ============================================================================
 # UI CONSTANTS
 # ============================================================================
+
+# Geometria padrão da janela
+DEFAULT_WINDOW_X = 100
+DEFAULT_WINDOW_Y = 100
+DEFAULT_WINDOW_WIDTH = 1300
+DEFAULT_WINDOW_HEIGHT = 800
+
+# Settings para persistência
+# Constantes usadas pelo QSettings para identificação da aplicação no sistema de armazenamento persistente
+# No Windows: armazenado no registro ou em arquivos .ini em AppData
+# No Linux/Mac: armazenado em arquivos de configuração específicos do sistema
+SETTINGS_ORG_NAME = "ManusAI"  # Nome da organização/desenvolvedor
+SETTINGS_APP_NAME = "GameTranslator"  # Nome da aplicação
 
 # Cores para linhas da tabela (tema escuro)
 class TableColors:
@@ -1042,7 +1055,7 @@ class MainWindow(QMainWindow):
         
         # Configura interface
         self.setWindowTitle("Game Translator - Sistema de Tradução para Jogos e Mods")
-        self.setGeometry(100, 100, 1300, 800)
+        self.setGeometry(DEFAULT_WINDOW_X, DEFAULT_WINDOW_Y, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
         
         # Aplica tema escuro
         self._apply_dark_theme()
@@ -1051,6 +1064,9 @@ class MainWindow(QMainWindow):
         self._create_menu_bar()
         self._create_ui()
         self._create_status_bar()
+        
+        # Restaura configurações da janela após UI estar criada
+        self._restore_window_settings()
         
         # Timer para atualizar status de recursos
         self.resource_timer = QTimer()
@@ -2416,6 +2432,32 @@ class MainWindow(QMainWindow):
             "<p>Desenvolvido por <b>Manus AI</b></p>"
         )
     
+    def _save_window_settings(self):
+        """Salva a geometria da janela"""
+        try:
+            settings = QSettings(SETTINGS_ORG_NAME, SETTINGS_APP_NAME)
+            settings.setValue("geometry", self.saveGeometry())
+            app_logger.info("Geometria da janela salva")
+        except Exception as e:
+            app_logger.error(f"Erro ao salvar configurações da janela: {e}")
+    
+    def _restore_window_settings(self):
+        """Restaura a geometria da janela"""
+        try:
+            settings = QSettings(SETTINGS_ORG_NAME, SETTINGS_APP_NAME)
+            
+            # Restaura geometria se existir (explicit default None)
+            geometry = settings.value("geometry", None)
+            if geometry:
+                success = self.restoreGeometry(geometry)
+                if success:
+                    app_logger.info("Geometria da janela restaurada")
+                else:
+                    app_logger.warning("Falha ao restaurar geometria da janela - usando geometria padrão")
+        except Exception as e:
+            app_logger.error(f"Erro ao restaurar configurações da janela: {e}")
+            # Continua com geometria padrão em caso de erro
+    
     def closeEvent(self, event):
         """Evento de fechamento da janela"""
         # Verifica se há alterações não salvas
@@ -2433,6 +2475,9 @@ class MainWindow(QMainWindow):
                 if reply == QMessageBox.No:
                     event.ignore()
                     return
+        
+        # Salva configurações da janela
+        self._save_window_settings()
         
         # Fecha conexão com banco de dados
         if self.translation_memory:
