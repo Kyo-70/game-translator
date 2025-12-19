@@ -1,12 +1,62 @@
 """
 Módulo de Gerenciamento de Perfis de Regex
 Permite criar, editar e aplicar perfis personalizados de extração de texto
+
+PERSISTÊNCIA DE PERFIS:
+- Cada perfil é salvo automaticamente como arquivo JSON no diretório 'profiles/'
+- O nome do arquivo é derivado do nome do perfil (slugificado para evitar problemas)
+- Na inicialização, todos os arquivos .json do diretório são carregados automaticamente
+- Suporta importação e exportação de perfis para compartilhamento
 """
 
 import json
 import os
 import re
+import shutil
+import unicodedata
 from typing import List, Dict, Optional
+
+
+def slugify(text: str) -> str:
+    """
+    Converte texto em um slug seguro para nome de arquivo
+    
+    Remove acentos, converte para minúsculas, substitui espaços por hífens
+    e remove caracteres especiais que podem causar problemas em nomes de arquivo.
+    
+    NOTA: Permite números e underscores no resultado (parte de \w)
+    Isso é intencional para suportar perfis como "v2.0" ou "my_profile"
+    
+    Args:
+        text: Texto a ser convertido
+        
+    Returns:
+        Texto slugificado seguro para uso em nomes de arquivo
+        
+    Examples:
+        >>> slugify("JSON Genérico")
+        'json-generico'
+        >>> slugify("Bannerlord XML")
+        'bannerlord-xml'
+        >>> slugify("Profile v2.0")
+        'profile-v20'
+    """
+    # Remove acentos (normalização NFD + remoção de marcas diacríticas)
+    text = unicodedata.normalize('NFD', text)
+    text = ''.join(char for char in text if unicodedata.category(char) != 'Mn')
+    
+    # Converte para minúsculas
+    text = text.lower()
+    
+    # Substitui espaços e caracteres inválidos por hífen
+    text = re.sub(r'[^\w\s-]', '', text)
+    text = re.sub(r'[-\s]+', '-', text)
+    
+    # Remove hífens do início e fim
+    text = text.strip('-')
+    
+    return text
+
 
 class RegexProfile:
     """Representa um perfil de regex para extração de texto"""
@@ -53,29 +103,58 @@ class RegexProfile:
         )
 
 class RegexProfileManager:
-    """Gerencia perfis de regex"""
+    """Gerencia perfis de regex com persistência em arquivos JSON"""
     
     def __init__(self, profiles_dir: str = "profiles"):
         """
         Inicializa o gerenciador de perfis
         
+        COMPORTAMENTO DE PERSISTÊNCIA:
+        1. Cria o diretório de perfis se não existir
+        2. Cria perfis padrão como arquivos .json (se não existirem)
+        3. Carrega automaticamente todos os perfis .json do diretório
+        
         Args:
-            profiles_dir: Diretório para armazenar perfis
+            profiles_dir: Diretório para armazenar perfis (padrão: "profiles")
         """
         self.profiles_dir = profiles_dir
         self.profiles: Dict[str, RegexProfile] = {}
         
-        # Cria diretório se não existir
+        # MUDANÇA: Cria diretório se não existir (garante persistência)
         os.makedirs(profiles_dir, exist_ok=True)
         
-        # Carrega perfis padrão
-        self._create_default_profiles()
-        
-        # Carrega perfis salvos
+        # Carrega perfis salvos primeiro (para manter compatibilidade)
         self.load_all_profiles()
+        
+        # Cria perfis padrão apenas se não existirem
+        self._create_default_profiles()
+    
+    def _get_profile_filepath(self, profile_name: str) -> str:
+        """
+        Obtém o caminho do arquivo para um perfil
+        
+        MUDANÇA: Agora usa slugificação para nomes de arquivo seguros
+        Isso evita problemas com caracteres especiais em diferentes sistemas operacionais
+        
+        Args:
+            profile_name: Nome do perfil
+            
+        Returns:
+            Caminho completo do arquivo JSON do perfil
+        """
+        filename = slugify(profile_name) + ".json"
+        return os.path.join(self.profiles_dir, filename)
     
     def _create_default_profiles(self):
-        """Cria perfis padrão para tipos comuns de arquivos"""
+        """
+        Cria perfis padrão para tipos comuns de arquivos
+        
+        MUDANÇA: Agora verifica se o perfil já existe antes de criar
+        Isso mantém compatibilidade com perfis existentes e evita sobrescrever customizações
+        """
+        
+        # Lista de perfis padrão a serem criados
+        default_profiles = []
         
         # Perfil para JSON genérico
         json_profile = RegexProfile(
@@ -93,6 +172,7 @@ class RegexProfileManager:
             ],
             file_type="json"
         )
+        default_profiles.append(json_profile)
         
         # Perfil para XML genérico
         xml_profile = RegexProfile(
@@ -109,6 +189,7 @@ class RegexProfileManager:
             ],
             file_type="xml"
         )
+        default_profiles.append(xml_profile)
         
         # Perfil para Bannerlord XML
         bannerlord_profile = RegexProfile(
@@ -125,6 +206,7 @@ class RegexProfileManager:
             ],
             file_type="xml"
         )
+        default_profiles.append(bannerlord_profile)
         
         # Perfil para RimWorld XML
         rimworld_profile = RegexProfile(
@@ -141,27 +223,35 @@ class RegexProfileManager:
             ],
             file_type="xml"
         )
+        default_profiles.append(rimworld_profile)
         
-        # Salva perfis padrão
-        for profile in [json_profile, xml_profile, bannerlord_profile, rimworld_profile]:
-            self.save_profile(profile)
+        # MUDANÇA: Salva apenas perfis que ainda não existem
+        # Isso preserva customizações do usuário em perfis padrão
+        for profile in default_profiles:
+            if profile.name not in self.profiles:
+                self.save_profile(profile)
     
     def save_profile(self, profile: RegexProfile) -> bool:
         """
-        Salva um perfil em arquivo
+        Salva um perfil em arquivo JSON
+        
+        MUDANÇA: Agora usa slugificação para nomes de arquivo seguros
+        O arquivo é salvo como {slug}.json, mas o perfil mantém seu nome original
         
         Args:
             profile: Perfil a ser salvo
             
         Returns:
-            True se salvou com sucesso
+            True se salvou com sucesso, False em caso de erro
         """
         try:
-            filepath = os.path.join(self.profiles_dir, f"{profile.name}.json")
+            # MUDANÇA: Usa função helper para obter caminho com slug
+            filepath = self._get_profile_filepath(profile.name)
             
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(profile.to_dict(), f, indent=2, ensure_ascii=False)
             
+            # Armazena na memória usando o nome original como chave
             self.profiles[profile.name] = profile
             return True
         except Exception as e:
@@ -170,34 +260,46 @@ class RegexProfileManager:
     
     def load_profile(self, filepath: str) -> Optional[RegexProfile]:
         """
-        Carrega um perfil de arquivo
+        Carrega um perfil de arquivo JSON
+        
+        MUDANÇA: Agora carrega perfis independente do nome do arquivo
+        O nome do perfil é lido do campo 'name' dentro do JSON
         
         Args:
-            filepath: Caminho do arquivo
+            filepath: Caminho do arquivo JSON
             
         Returns:
-            Perfil carregado ou None
+            Perfil carregado ou None em caso de erro
         """
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
             profile = RegexProfile.from_dict(data)
+            # Armazena usando o nome original do perfil como chave
             self.profiles[profile.name] = profile
             return profile
         except Exception as e:
-            print(f"Erro ao carregar perfil: {e}")
+            print(f"Erro ao carregar perfil de {filepath}: {e}")
             return None
     
     def load_all_profiles(self):
-        """Carrega todos os perfis do diretório"""
+        """
+        Carrega todos os perfis do diretório
+        
+        MUDANÇA: Agora carrega TODOS os arquivos .json do diretório na inicialização
+        Isso garante que perfis criados pela interface sejam carregados automaticamente
+        """
         try:
+            if not os.path.exists(self.profiles_dir):
+                return
+                
             for filename in os.listdir(self.profiles_dir):
                 if filename.endswith('.json'):
                     filepath = os.path.join(self.profiles_dir, filename)
                     self.load_profile(filepath)
         except Exception as e:
-            print(f"Erro ao carregar perfis: {e}")
+            print(f"Erro ao carregar perfis do diretório {self.profiles_dir}: {e}")
     
     def get_profile(self, name: str) -> Optional[RegexProfile]:
         """
@@ -217,24 +319,97 @@ class RegexProfileManager:
     
     def delete_profile(self, name: str) -> bool:
         """
-        Deleta um perfil
+        Deleta um perfil (remove arquivo e da memória)
+        
+        MUDANÇA: Agora usa slugificação para encontrar o arquivo correto
         
         Args:
             name: Nome do perfil
             
         Returns:
-            True se deletou com sucesso
+            True se deletou com sucesso, False em caso de erro
         """
         try:
-            filepath = os.path.join(self.profiles_dir, f"{name}.json")
+            # MUDANÇA: Usa função helper para obter caminho com slug
+            filepath = self._get_profile_filepath(name)
             
+            # Remove arquivo se existir
             if os.path.exists(filepath):
                 os.remove(filepath)
             
+            # Remove da memória
             if name in self.profiles:
                 del self.profiles[name]
             
             return True
         except Exception as e:
-            print(f"Erro ao deletar perfil: {e}")
+            print(f"Erro ao deletar perfil {name}: {e}")
             return False
+    
+    def export_profile(self, name: str, export_path: str) -> bool:
+        """
+        Exporta um perfil para um arquivo (para compartilhamento)
+        
+        NOVO: Permite exportar perfis para compartilhar com outros usuários
+        
+        Args:
+            name: Nome do perfil a exportar
+            export_path: Caminho onde o perfil será exportado
+            
+        Returns:
+            True se exportou com sucesso, False em caso de erro
+        """
+        try:
+            profile = self.get_profile(name)
+            if not profile:
+                print(f"Perfil '{name}' não encontrado")
+                return False
+            
+            # Salva uma cópia no caminho especificado
+            with open(export_path, 'w', encoding='utf-8') as f:
+                json.dump(profile.to_dict(), f, indent=2, ensure_ascii=False)
+            
+            return True
+        except Exception as e:
+            print(f"Erro ao exportar perfil: {e}")
+            return False
+    
+    def import_profile(self, import_path: str) -> Optional[RegexProfile]:
+        """
+        Importa um perfil de um arquivo externo
+        
+        NOVO: Permite importar perfis compartilhados por outros usuários
+        O perfil importado é automaticamente salvo no diretório de perfis
+        
+        Args:
+            import_path: Caminho do arquivo de perfil a importar
+            
+        Returns:
+            Perfil importado ou None em caso de erro
+        """
+        try:
+            # Carrega o perfil do arquivo externo
+            with open(import_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            profile = RegexProfile.from_dict(data)
+            
+            # Verifica se já existe um perfil com o mesmo nome
+            if profile.name in self.profiles:
+                # Adiciona sufixo para evitar conflito
+                # NOTA: Modifica o nome do perfil para evitar sobrescrever o existente
+                # O usuário pode renomear manualmente depois se desejar
+                base_name = profile.name
+                counter = 1
+                while f"{base_name} ({counter})" in self.profiles:
+                    counter += 1
+                profile.name = f"{base_name} ({counter})"
+            
+            # Salva o perfil importado
+            if self.save_profile(profile):
+                return profile
+            
+            return None
+        except Exception as e:
+            print(f"Erro ao importar perfil de {import_path}: {e}")
+            return None

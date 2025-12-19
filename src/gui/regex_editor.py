@@ -449,6 +449,19 @@ class RegexProfileManagerDialog(QDialog):
         
         list_layout.addLayout(list_btn_layout)
         
+        # Botões de importação/exportação
+        import_export_layout = QHBoxLayout()
+        
+        btn_import = QPushButton("📥 Importar")
+        btn_import.clicked.connect(self._import_profile)
+        import_export_layout.addWidget(btn_import)
+        
+        btn_export = QPushButton("📤 Exportar")
+        btn_export.clicked.connect(self._export_profile)
+        import_export_layout.addWidget(btn_export)
+        
+        list_layout.addLayout(import_export_layout)
+        
         splitter.addWidget(list_widget)
         
         # Detalhes do perfil
@@ -579,6 +592,74 @@ class RegexProfileManagerDialog(QDialog):
             self.profile_manager.delete_profile(item.text())
             self._load_profiles()
             self.profile_changed.emit()
+    
+    def _import_profile(self):
+        """Importa perfil de arquivo externo"""
+        from PySide6.QtWidgets import QFileDialog
+        
+        filepath, _ = QFileDialog.getOpenFileName(
+            self,
+            "Importar Perfil",
+            "",
+            "Perfil de Regex (*.json)"
+        )
+        
+        if filepath:
+            profile = self.profile_manager.import_profile(filepath)
+            if profile:
+                self._load_profiles()
+                self.profile_changed.emit()
+                QMessageBox.information(
+                    self,
+                    "Sucesso",
+                    f"Perfil '{profile.name}' importado com sucesso!"
+                )
+            else:
+                QMessageBox.critical(
+                    self,
+                    "Erro",
+                    "Falha ao importar perfil. Verifique se o arquivo é válido."
+                )
+    
+    def _export_profile(self):
+        """Exporta perfil selecionado para arquivo"""
+        from PySide6.QtWidgets import QFileDialog
+        
+        item = self.profile_list.currentItem()
+        if not item:
+            QMessageBox.warning(self, "Aviso", "Selecione um perfil para exportar")
+            return
+        
+        profile_name = item.text()
+        
+        # Sugere nome de arquivo baseado no perfil
+        try:
+            from regex_profiles import slugify
+        except ImportError:
+            from src.regex_profiles import slugify
+        
+        suggested_name = slugify(profile_name) + ".json"
+        
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "Exportar Perfil",
+            suggested_name,
+            "Perfil de Regex (*.json)"
+        )
+        
+        if filepath:
+            if self.profile_manager.export_profile(profile_name, filepath):
+                QMessageBox.information(
+                    self,
+                    "Sucesso",
+                    f"Perfil '{profile_name}' exportado com sucesso!"
+                )
+            else:
+                QMessageBox.critical(
+                    self,
+                    "Erro",
+                    "Falha ao exportar perfil."
+                )
 
 
 class ImportTranslationDialog(QDialog):

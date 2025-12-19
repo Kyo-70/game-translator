@@ -707,44 +707,197 @@ class LibreTranslator(TranslationAPI):
 # ============================================================================
 
 class TranslationAPIManager:
-    """Gerencia diferentes APIs de tradução com fallback inteligente"""
+    """Gerencia diferentes APIs de tradução com fallback inteligente e persistência"""
     
-    def __init__(self):
-        """Inicializa o gerenciador"""
+    def __init__(self, config_file: str = "api_config.json"):
+        """
+        Inicializa o gerenciador
+        
+        PERSISTÊNCIA DE APIs:
+        - As chaves de API são salvas em um arquivo de configuração
+        - Na inicialização, as APIs salvas são carregadas automaticamente
+        - Mudanças em APIs são automaticamente persistidas
+        
+        Args:
+            config_file: Arquivo para salvar configurações de API
+        """
+        self.config_file = config_file
         self.apis: Dict[str, TranslationAPI] = {}
         self.active_api: Optional[str] = None
         self.usage_tracker = UsageTracker()
         
-        # Adiciona LibreTranslate como fallback gratuito padrão
-        self.add_libre()
+        # MUDANÇA: Carrega configurações salvas antes de adicionar APIs
+        self._load_config()
+        
+        # Adiciona LibreTranslate como fallback gratuito padrão (se não existir)
+        if 'libre' not in self.apis:
+            self.add_libre()
     
-    def add_deepl(self, api_key: str):
-        """Adiciona API DeepL"""
+    def _load_config(self):
+        """
+        Carrega configurações de API do arquivo
+        
+        NOVO: Carrega automaticamente APIs salvas na inicialização
+        """
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                
+                # Carrega API ativa
+                self.active_api = config.get('active_api')
+                
+                # Carrega APIs configuradas
+                apis_config = config.get('apis', {})
+                
+                if 'deepl' in apis_config:
+                    self.add_deepl(apis_config['deepl']['api_key'], save=False)
+                
+                if 'google' in apis_config:
+                    self.add_google(apis_config['google']['api_key'], save=False)
+                
+                if 'mymemory' in apis_config:
+                    email = apis_config['mymemory'].get('email')
+                    self.add_mymemory(email, save=False)
+                
+                if 'libre' in apis_config:
+                    server_url = apis_config['libre'].get('server_url')
+                    api_key = apis_config['libre'].get('api_key')
+                    self.add_libre(server_url, api_key, save=False)
+                    
+        except Exception as e:
+            print(f"Erro ao carregar configurações de API: {e}")
+    
+    def _save_config(self):
+        """
+        Salva configurações de API no arquivo
+        
+        NOVO: Persiste configurações de API para uso futuro
+        
+        ⚠️ AVISO DE SEGURANÇA:
+        As chaves de API são salvas em texto simples no arquivo api_config.json.
+        Este arquivo está no .gitignore e não deve ser compartilhado.
+        
+        Para ambientes de produção ou maior segurança, considere:
+        - Usar biblioteca de criptografia (cryptography, keyring)
+        - Usar variáveis de ambiente
+        - Armazenar em keychain do sistema operacional
+        
+        Para uso pessoal local, texto simples é aceitável se o arquivo for protegido.
+        """
+        try:
+            config = {
+                'active_api': self.active_api,
+                'apis': {}
+            }
+            
+            # Salva configurações de cada API (sem objetos, apenas dados básicos)
+            for name in self.apis.keys():
+                if name == 'deepl':
+                    api = self.apis[name]
+                    config['apis']['deepl'] = {'api_key': api.api_key}
+                    
+                elif name == 'google':
+                    api = self.apis[name]
+                    config['apis']['google'] = {'api_key': api.api_key}
+                    
+                elif name == 'mymemory':
+                    api = self.apis[name]
+                    config['apis']['mymemory'] = {'email': api.email}
+                    
+                elif name == 'libre':
+                    api = self.apis[name]
+                    config['apis']['libre'] = {
+                        'server_url': api.server_url,
+                        'api_key': api.api_key
+                    }
+            
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2)
+                
+        except Exception as e:
+            print(f"Erro ao salvar configurações de API: {e}")
+    
+    def add_deepl(self, api_key: str, save: bool = True):
+        """
+        Adiciona API DeepL
+        
+        MUDANÇA: Agora salva automaticamente a configuração
+        
+        Args:
+            api_key: Chave de API do DeepL
+            save: Se True, salva a configuração (padrão: True)
+                  Use False apenas durante _load_config() para evitar recursão
+        """
         self.apis['deepl'] = DeepLTranslator(api_key)
         if not self.active_api:
             self.active_api = 'deepl'
+        if save:
+            self._save_config()
     
-    def add_google(self, api_key: str):
-        """Adiciona API Google"""
+    def add_google(self, api_key: str, save: bool = True):
+        """
+        Adiciona API Google
+        
+        MUDANÇA: Agora salva automaticamente a configuração
+        
+        Args:
+            api_key: Chave de API do Google
+            save: Se True, salva a configuração (padrão: True)
+        """
         self.apis['google'] = GoogleTranslator(api_key)
         if not self.active_api:
             self.active_api = 'google'
+        if save:
+            self._save_config()
     
-    def add_mymemory(self, email: str = None):
-        """Adiciona API MyMemory (gratuita)"""
+    def add_mymemory(self, email: str = None, save: bool = True):
+        """
+        Adiciona API MyMemory (gratuita)
+        
+        MUDANÇA: Agora salva automaticamente a configuração
+        
+        Args:
+            email: Email para aumentar limite (opcional)
+            save: Se True, salva a configuração (padrão: True)
+        """
         self.apis['mymemory'] = MyMemoryTranslator(email)
         if not self.active_api:
             self.active_api = 'mymemory'
+        if save:
+            self._save_config()
     
-    def add_libre(self, server_url: str = None, api_key: str = None):
-        """Adiciona API LibreTranslate (gratuita)"""
+    def add_libre(self, server_url: str = None, api_key: str = None, save: bool = True):
+        """
+        Adiciona API LibreTranslate (gratuita)
+        
+        MUDANÇA: Agora salva automaticamente a configuração
+        
+        Args:
+            server_url: URL do servidor LibreTranslate
+            api_key: Chave de API (se necessário)
+            save: Se True, salva a configuração (padrão: True)
+        """
         self.apis['libre'] = LibreTranslator(server_url, api_key)
         # LibreTranslate é sempre fallback, não define como ativo automaticamente
+        if save:
+            self._save_config()
     
     def set_active_api(self, api_name: str) -> bool:
-        """Define a API ativa"""
+        """
+        Define a API ativa
+        
+        MUDANÇA: Agora salva automaticamente a configuração
+        
+        Args:
+            api_name: Nome da API a ser ativada
+            
+        Returns:
+            True se a API foi ativada com sucesso
+        """
         if api_name in self.apis:
             self.active_api = api_name
+            self._save_config()
             return True
         return False
     

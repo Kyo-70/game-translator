@@ -1,0 +1,15 @@
+{
+  "name": "JSON Genérico",
+  "description": "Extrai valores de strings em arquivos JSON",
+  "capture_patterns": [
+    "\"([^\"]+)\"\\s*:\\s*\"([^\"]+)\"",
+    ":\\s*\"([^\"]+)\""
+  ],
+  "exclude_patterns": [
+    "\"id\"\\s*:\\s*\"[^\"]+\"",
+    "\"key\"\\s*:\\s*\"[^\"]+\"",
+    "\"name\"\\s*:\\s*\"[a-z_]+\"",
+    "\"type\"\\s*:\\s*\"[^\"]+\""
+  ],
+  "file_type": "json"
+}
