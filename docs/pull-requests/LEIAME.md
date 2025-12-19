@@ -1,4 +1,4 @@
-# Pull Request Documentation
+# Documentação de Pull Requests
 
 Esta pasta contém documentação detalhada sobre as mudanças feitas em pull requests específicos.
 
@@ -6,28 +6,28 @@ Esta pasta contém documentação detalhada sobre as mudanças feitas em pull re
 
 Cada PR pode ter os seguintes documentos:
 
-### 1. CHANGES_SUMMARY.md
+### 1. RESUMO_MUDANCAS.md
 Resumo técnico das mudanças implementadas, incluindo:
 - Problemas abordados
 - Soluções implementadas
 - Arquivos modificados
 - Detalhes técnicos
 
-### 2. FINAL_SUMMARY.md
+### 2. RESUMO_FINAL.md
 Resumo completo e final da implementação, incluindo:
 - Lista de verificação completa
 - Resultados de testes
 - Análise de segurança
 - Estatísticas de mudanças
 
-### 3. USER_GUIDE.md
+### 3. GUIA_USUARIO.md
 Guia visual para o usuário final, mostrando:
 - O que mudou do ponto de vista do usuário
 - Como usar as novas funcionalidades
 - Exemplos visuais (ASCII art)
 - Benefícios das mudanças
 
-## PR Atual: Fix Edit Display Issue
+## PR Atual: Correção do Problema de Visualização ao Editar
 
 Este PR aborda três problemas principais:
 
@@ -36,13 +36,13 @@ Este PR aborda três problemas principais:
 3. **Tecla DEL para limpar traduções**: Permite limpar traduções de linhas selecionadas com a tecla Delete
 
 ### Documentos Disponíveis:
-- [CHANGES_SUMMARY.md](./CHANGES_SUMMARY.md) - Resumo técnico das mudanças
-- [FINAL_SUMMARY.md](./FINAL_SUMMARY.md) - Resumo completo da implementação
-- [USER_GUIDE.md](./USER_GUIDE.md) - Guia visual para usuários
+- [RESUMO_MUDANCAS.md](./RESUMO_MUDANCAS.md) - Resumo técnico das mudanças
+- [RESUMO_FINAL.md](./RESUMO_FINAL.md) - Resumo completo da implementação
+- [GUIA_USUARIO.md](./GUIA_USUARIO.md) - Guia visual para usuários
 
 ## Como Usar Esta Documentação
 
-- **Desenvolvedores**: Leiam CHANGES_SUMMARY.md e FINAL_SUMMARY.md para entender as mudanças técnicas
-- **Revisores de código**: Use FINAL_SUMMARY.md para verificar a lista de checagem completa
-- **Usuários finais**: Consulte USER_GUIDE.md para aprender as novas funcionalidades
-- **Gerentes de projeto**: FINAL_SUMMARY.md contém estatísticas e impacto das mudanças
+- **Desenvolvedores**: Leiam RESUMO_MUDANCAS.md e RESUMO_FINAL.md para entender as mudanças técnicas
+- **Revisores de código**: Use RESUMO_FINAL.md para verificar a lista de checagem completa
+- **Usuários finais**: Consulte GUIA_USUARIO.md para aprender as novas funcionalidades
+- **Gerentes de projeto**: RESUMO_FINAL.md contém estatísticas e impacto das mudanças
