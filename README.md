@@ -75,7 +75,8 @@ O arquivo `ATUALIZAR.bat` oferece:
 - **Copiar/Colar**: Ctrl+C e Ctrl+V para editar traduções em massa no Notepad
 - **Seleção Múltipla**: Selecione e edite várias linhas simultaneamente
 - **Auto-ajuste de Altura**: Linhas da tabela se ajustam automaticamente ao tamanho do conteúdo
-- **Visualizador de Banco**: Veja e edite todas as traduções salvas
+- **Ajuste de Colunas**: Arraste as bordas das colunas para ajustar a largura conforme necessário
+- **Visualizador de Banco**: Veja, edite e exclua traduções salvas (tecla Delete)
 - **Progresso em Tempo Real**: Acompanhe o status das operações
 - **Monitor de Recursos**: Visualize uso de RAM e CPU
 
@@ -123,10 +124,12 @@ Ao iniciar, o programa solicita um banco de dados:
 |--------|-----------|
 | **Manual** | Duplo clique na célula de tradução |
 | **Copiar/Colar** | Ctrl+C para copiar, editar no Bloco de Notas, Ctrl+V para colar |
-| **Memória** | Clique em "⚡ Aplicar Memória" |
-| **API** | Clique em "🤖 Traduzir Auto" |
+| **Memória** | Clique em "⚡ Aplicar Memória" (aplica a todas ou apenas às linhas selecionadas) |
+| **API** | Clique em "🤖 Traduzir Auto" (traduz todas ou apenas as linhas selecionadas) |
 
 > 💡 **Novo!** Use **Ctrl+C** e **Ctrl+V** para copiar múltiplas linhas e editar no Notepad! Veja [COPIAR_COLAR.md](COPIAR_COLAR.md) para detalhes.
+
+> 💡 **Dica de Tradução Seletiva**: Selecione linhas específicas antes de usar "⚡ Aplicar Memória" ou "🤖 Traduzir Auto" para traduzir apenas essas linhas!
 
 ### 4. Salvar
 
@@ -144,7 +147,9 @@ Acesse via **Menu > Banco de Dados > Visualizar** ou botão **"🗄️ Ver Banco
 - **Buscar**: Encontre traduções específicas
 - **Filtrar**: Por categoria
 - **Editar**: Duplo clique para editar
-- **Excluir**: Remova traduções incorretas
+- **Excluir**: Remova traduções incorretas (botão 🗑️ ou tecla Delete)
+- **Ajustar Colunas**: Arraste as bordas das colunas para ajustar a largura horizontalmente
+- **Auto-ajuste Vertical**: As alturas das linhas se ajustam automaticamente ao conteúdo
 - **Exportar/Importar**: CSV para backup ou compartilhamento
 
 ## 🎮 Perfis Pré-configurados

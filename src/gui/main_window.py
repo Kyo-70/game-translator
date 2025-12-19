@@ -1305,6 +1305,11 @@ class MainWindow(QMainWindow):
         
         # Botão traduzir automaticamente
         self.btn_auto_translate = QPushButton("🤖 Traduzir Auto (F5)")
+        self.btn_auto_translate.setToolTip(
+            "Traduzir usando API:\n"
+            "• Sem seleção: traduz todas as linhas não traduzidas\n"
+            "• Com seleção: traduz apenas as linhas selecionadas"
+        )
         self.btn_auto_translate.clicked.connect(self.auto_translate)
         self.btn_auto_translate.setEnabled(False)
         self.btn_auto_translate.setShortcut("F5")
@@ -1312,6 +1317,11 @@ class MainWindow(QMainWindow):
         
         # Botão aplicar traduções inteligentes
         self.btn_smart_translate = QPushButton("⚡ Aplicar Memória")
+        self.btn_smart_translate.setToolTip(
+            "Aplicar traduções da memória:\n"
+            "• Sem seleção: aplica a todas as linhas não traduzidas\n"
+            "• Com seleção: aplica apenas às linhas selecionadas"
+        )
         self.btn_smart_translate.clicked.connect(self.apply_smart_translations)
         self.btn_smart_translate.setEnabled(False)
         layout.addWidget(self.btn_smart_translate)
@@ -1920,12 +1930,34 @@ class MainWindow(QMainWindow):
         try:
             self.status_label.setText("Aplicando traduções inteligentes...")
             
-            # Coleta textos não traduzidos
-            untranslated = [e.original_text for e in self.entries if not e.translated_text]
+            # Verifica se há linhas selecionadas
+            selected_rows = sorted(set(item.row() for item in self.table.selectedItems()))
             
-            if not untranslated:
-                QMessageBox.information(self, "Informação", "Todos os textos já estão traduzidos!")
-                return
+            if selected_rows:
+                # Aplica apenas às linhas selecionadas que não têm tradução
+                untranslated = []
+                for row in selected_rows:
+                    if row < len(self.entries) and not self.entries[row].translated_text:
+                        untranslated.append(self.entries[row].original_text)
+                
+                if not untranslated:
+                    QMessageBox.information(
+                        self, 
+                        "Informação", 
+                        "Todas as linhas selecionadas já estão traduzidas!"
+                    )
+                    return
+                
+                info_message = f"{len(untranslated)} linha(s) selecionada(s)"
+            else:
+                # Se nenhuma linha selecionada, aplica a todas não traduzidas
+                untranslated = [e.original_text for e in self.entries if not e.translated_text]
+                
+                if not untranslated:
+                    QMessageBox.information(self, "Informação", "Todos os textos já estão traduzidos!")
+                    return
+                
+                info_message = f"todas as {len(untranslated)} linhas não traduzidas"
             
             # Aplica tradução inteligente
             translations = self.smart_translator.auto_translate_batch(untranslated)
@@ -1942,7 +1974,12 @@ class MainWindow(QMainWindow):
             self._update_statistics()
             
             self.status_label.setText(f"Traduções inteligentes aplicadas: {count}")
-            QMessageBox.information(self, "Sucesso", f"{count} traduções aplicadas automaticamente!")
+            QMessageBox.information(
+                self, 
+                "Sucesso", 
+                f"{count} traduções aplicadas automaticamente em {info_message}!\n\n"
+                "💡 Dica: Selecione linhas específicas para aplicar tradução apenas a elas."
+            )
             
             app_logger.info(f"Traduções inteligentes aplicadas: {count}")
             
@@ -1961,19 +1998,47 @@ class MainWindow(QMainWindow):
             self.open_settings()
             return
         
-        # Coleta textos não traduzidos
-        untranslated = [e.original_text for e in self.entries if not e.translated_text]
+        # Verifica se há linhas selecionadas
+        selected_rows = sorted(set(item.row() for item in self.table.selectedItems()))
         
-        if not untranslated:
-            QMessageBox.information(self, "Informação", "Todos os textos já estão traduzidos!")
-            return
+        if selected_rows:
+            # Traduz apenas as linhas selecionadas que não têm tradução
+            untranslated = []
+            for row in selected_rows:
+                if row < len(self.entries) and not self.entries[row].translated_text:
+                    untranslated.append(self.entries[row].original_text)
+            
+            if not untranslated:
+                QMessageBox.information(
+                    self, 
+                    "Informação", 
+                    "Todas as linhas selecionadas já estão traduzidas!"
+                )
+                return
+            
+            confirm_message = (
+                f"Traduzir {len(untranslated)} linha(s) selecionada(s) usando {self.api_manager.active_api.upper()}?\n\n"
+                "Isso pode consumir créditos da API."
+            )
+        else:
+            # Se nenhuma linha selecionada, traduz todas não traduzidas
+            untranslated = [e.original_text for e in self.entries if not e.translated_text]
+            
+            if not untranslated:
+                QMessageBox.information(self, "Informação", "Todos os textos já estão traduzidos!")
+                return
+            
+            confirm_message = (
+                f"Traduzir TODAS as {len(untranslated)} linhas não traduzidas usando {self.api_manager.active_api.upper()}?\n\n"
+                "Isso pode consumir créditos da API.\n\n"
+                "💡 Dica: Selecione linhas específicas para traduzir apenas essas."
+            )
         
         # Confirma ação
         reply = QMessageBox.question(
             self,
             "Confirmar Tradução Automática",
-            f"Traduzir {len(untranslated)} textos usando {self.api_manager.active_api.upper()}?\n\n"
-            "Isso pode consumir créditos da API.",
+            confirm_message,
             QMessageBox.Yes | QMessageBox.No
         )
         
