@@ -1688,45 +1688,50 @@ class MainWindow(QMainWindow):
             if row >= len(self.entries):
                 continue
             
-            # Parse da linha (formato: Original\tTradução)
+            # Parse da linha (formato: Original\tTradução ou apenas Tradução)
             parts = clipboard_lines[i].split('\t')
             
+            # Extrai a tradução baseado no número de campos
             if len(parts) >= 2:
-                # Se tem original e tradução
+                # Se tem original e tradução (formato TSV completo)
                 translation = parts[1].strip()
-            elif len(parts) == 1:
+            else:
                 # Se tem apenas um campo, usa como tradução
                 translation = parts[0].strip()
-            else:
+            
+            # Atualiza apenas se há tradução não vazia
+            if not translation:
                 continue
             
-            # Atualiza apenas se há tradução
-            if translation:
-                # Atualiza entrada
-                original = self.entries[row].original_text
-                self.entries[row].translated_text = translation
+            # Atualiza entrada
+            original = self.entries[row].original_text
+            self.entries[row].translated_text = translation
+            
+            # Atualiza item da tabela (com verificação de null)
+            translation_item = self.table.item(row, 2)
+            if translation_item:
+                translation_item.setText(translation)
+            
+            # Adiciona à memória
+            if self.translation_memory.is_connected():
+                self.translation_memory.add_translation(original, translation)
                 
-                # Atualiza item da tabela
-                if self.table.item(row, 2):
-                    self.table.item(row, 2).setText(translation)
+                if self.smart_translator:
+                    self.smart_translator.learn_pattern(original, translation)
                 
-                # Adiciona à memória
-                if self.translation_memory.is_connected():
-                    self.translation_memory.add_translation(original, translation)
-                    
-                    if self.smart_translator:
-                        self.smart_translator.learn_pattern(original, translation)
-                    
-                    app_logger.log_translation(original, translation, "paste")
-                
-                # Atualiza status visual
-                if self.table.item(row, 3):
-                    self.table.item(row, 3).setText("✅")
-                    for col in range(4):
-                        if self.table.item(row, col):
-                            self.table.item(row, col).setBackground(QColor(40, 60, 40))
-                
-                pasted_count += 1
+                app_logger.log_translation(original, translation, "paste")
+            
+            # Atualiza status visual (com verificação de null para todos os items)
+            status_item = self.table.item(row, 3)
+            if status_item:
+                status_item.setText("✅")
+            
+            for col in range(4):
+                item = self.table.item(row, col)
+                if item:
+                    item.setBackground(QColor(40, 60, 40))
+            
+            pasted_count += 1
         
         self.table.blockSignals(False)  # Reativa sinais
         
