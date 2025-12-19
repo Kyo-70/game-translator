@@ -1,0 +1,14 @@
+{
+  "name": "Bannerlord XML",
+  "description": "Perfil específico para arquivos XML do Mount & Blade II: Bannerlord",
+  "capture_patterns": [
+    "text=\"([^\"]+)\"",
+    "<string[^>]*>([^<]+)</string>"
+  ],
+  "exclude_patterns": [
+    "id=\"[^\"]+\"",
+    "key=\"[^\"]+\"",
+    "<!--.*?-->"
+  ],
+  "file_type": "xml"
+}
