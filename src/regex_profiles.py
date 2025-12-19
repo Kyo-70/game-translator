@@ -24,6 +24,9 @@ def slugify(text: str) -> str:
     Remove acentos, converte para minúsculas, substitui espaços por hífens
     e remove caracteres especiais que podem causar problemas em nomes de arquivo.
     
+    NOTA: Permite números e underscores no resultado (parte de \w)
+    Isso é intencional para suportar perfis como "v2.0" ou "my_profile"
+    
     Args:
         text: Texto a ser convertido
         
@@ -35,6 +38,8 @@ def slugify(text: str) -> str:
         'json-generico'
         >>> slugify("Bannerlord XML")
         'bannerlord-xml'
+        >>> slugify("Profile v2.0")
+        'profile-v20'
     """
     # Remove acentos (normalização NFD + remoção de marcas diacríticas)
     text = unicodedata.normalize('NFD', text)
@@ -392,6 +397,8 @@ class RegexProfileManager:
             # Verifica se já existe um perfil com o mesmo nome
             if profile.name in self.profiles:
                 # Adiciona sufixo para evitar conflito
+                # NOTA: Modifica o nome do perfil para evitar sobrescrever o existente
+                # O usuário pode renomear manualmente depois se desejar
                 base_name = profile.name
                 counter = 1
                 while f"{base_name} ({counter})" in self.profiles:

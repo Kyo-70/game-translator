@@ -773,7 +773,17 @@ class TranslationAPIManager:
         Salva configurações de API no arquivo
         
         NOVO: Persiste configurações de API para uso futuro
-        IMPORTANTE: As chaves são salvas em texto simples - em produção deveria usar criptografia
+        
+        ⚠️ AVISO DE SEGURANÇA:
+        As chaves de API são salvas em texto simples no arquivo api_config.json.
+        Este arquivo está no .gitignore e não deve ser compartilhado.
+        
+        Para ambientes de produção ou maior segurança, considere:
+        - Usar biblioteca de criptografia (cryptography, keyring)
+        - Usar variáveis de ambiente
+        - Armazenar em keychain do sistema operacional
+        
+        Para uso pessoal local, texto simples é aceitável se o arquivo for protegido.
         """
         try:
             config = {
@@ -817,6 +827,7 @@ class TranslationAPIManager:
         Args:
             api_key: Chave de API do DeepL
             save: Se True, salva a configuração (padrão: True)
+                  Use False apenas durante _load_config() para evitar recursão
         """
         self.apis['deepl'] = DeepLTranslator(api_key)
         if not self.active_api:
