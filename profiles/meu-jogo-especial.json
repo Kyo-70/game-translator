@@ -1,0 +1,9 @@
+{
+  "name": "Meu Jogo Especial!",
+  "description": "Teste de perfil com caracteres especiais",
+  "capture_patterns": [
+    "text=\"([^\"]+)\""
+  ],
+  "exclude_patterns": [],
+  "file_type": "xml"
+}
