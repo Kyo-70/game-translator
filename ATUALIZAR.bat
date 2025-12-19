@@ -94,7 +94,7 @@ echo.
 
 echo %COLOR_SECAO%[Branch Atual]%COLOR_RESET%
 echo.
-git branch --show-current
+git symbolic-ref --short HEAD 2>nul || echo Detached HEAD
 echo.
 
 echo %COLOR_SECAO%[Ultimo Commit]%COLOR_RESET%
@@ -284,9 +284,15 @@ echo.
 :: Usa symbolic-ref para compatibilidade com Git mais antigo
 for /f "tokens=*" %%i in ('git symbolic-ref --short HEAD 2^>nul') do set BRANCH_PULL=%%i
 
-:: Se não conseguiu obter a branch, usa HEAD
+:: Se não conseguiu obter a branch (detached HEAD), avisa e cancela
 if "%BRANCH_PULL%"=="" (
-    set "BRANCH_PULL=HEAD"
+    echo %COLOR_ERRO%[ERRO]%COLOR_RESET% Estado detached HEAD detectado
+    echo %COLOR_AVISO%Nao e possivel atualizar em estado detached HEAD%COLOR_RESET%
+    echo %COLOR_INFO%Faca checkout em uma branch primeiro: git checkout main%COLOR_RESET%
+    echo.
+    pause
+    cls
+    goto MENU
 )
 
 echo %COLOR_INFO%[3/5]%COLOR_RESET% Aplicando atualizacoes...
