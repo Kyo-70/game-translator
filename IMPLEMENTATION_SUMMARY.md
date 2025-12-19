@@ -1,197 +1,145 @@
-# Copy/Paste Feature - Implementation Complete ✅
+# Resumo de Implementação - Game Translator
 
-## Problem Statement (Portuguese)
-> "Adiciona o suporte de copia e cola, fora e dentro do programa e seleção de mais de uma linha ao copiar no bloco de notas e editar lá e colar colar na ordem que está a seleção"
+## 📋 Requisitos Implementados
 
-**Translation:**
-"Add support for copy and paste, inside and outside the program and selection of more than one line when copying in notepad and editing there and pasting in the order of the selection"
+### 1. Excluir Linhas do Banco de Dados ✅
+**Status:** Já existia + Melhorado
 
-## Solution Implemented
+**O que foi feito:**
+- Botão visual `🗑️ Excluir Selecionado` já existia no código
+- **NOVO:** Adicionado atalho da tecla **Delete** para exclusão rápida
+- Funciona no Visualizador de Banco de Dados
+- Inclui diálogo de confirmação para evitar exclusões acidentais
 
-### ✅ Requirements Met
+---
 
-1. **Copy/Paste Support Inside and Outside the Program**
-   - Implemented using standard Qt clipboard API
-   - Works seamlessly with all external applications (Notepad, Excel, etc.)
-   - Uses system clipboard for universal compatibility
+### 2. Ajuste de Colunas Horizontalmente pelo Usuário ✅
+**Status:** Implementado
 
-2. **Multi-Row Selection**
-   - Enabled `ExtendedSelection` mode in QTableWidget
-   - Supports Ctrl+Click for non-consecutive selection
-   - Supports Shift+Click for range selection
-   - Supports Ctrl+A for select all
+**O que foi feito:**
+- Usuário pode agora **arrastar as bordas das colunas** para ajustar a largura
+- Mudado de `QHeaderView.Stretch` (fixo) para `QHeaderView.Interactive` (ajustável)
+- Implementado em **duas tabelas**: tabela principal e visualizador de banco de dados
+- Larguras iniciais configuradas: 400px (tabela principal) e 350px (visualizador)
 
-3. **Notepad Editing**
-   - Data formatted as Tab-Separated Values (TSV)
-   - Perfect for editing in Notepad, Excel, or any text editor
-   - Preserves tabs within translation text
-   - Cross-platform line ending support (Windows \r\n, Unix \n, Mac \r)
+**Como usar:**
+- Posicione o cursor na borda entre duas colunas no cabeçalho
+- Clique e arraste para ajustar a largura
 
-4. **Paste in Selection Order**
-   - Maintains the order of selected rows
-   - Applies pasted translations sequentially
-   - Validates row count and provides user feedback
+---
 
-## Technical Implementation
+### 3. Auto-ajuste Vertical (Altura das Linhas) ✅
+**Status:** Implementado
 
-### Files Modified
+**O que foi feito:**
+- **Auto-ajuste automático** da altura das linhas baseado no conteúdo
+- Recalcula automaticamente quando o usuário redimensiona colunas
+- Considera comprimento do texto, largura da coluna e quebras de linha
+- Altura mínima de 30px, máxima de 200px
 
-1. **src/gui/main_window.py** (+160 lines)
-   - Added `copy_selected_rows()` method
-   - Added `paste_rows()` method
-   - Added keyboard shortcuts (Ctrl+C, Ctrl+V)
-   - Updated table selection mode
-   - Updated keyboard shortcuts documentation
+**Como funciona:**
+- Automático ao carregar dados
+- Automático ao editar traduções
+- Automático ao colar dados
+- Automático ao redimensionar colunas
 
-2. **README.md** (+5 lines)
-   - Added copy/paste to features list
-   - Added link to comprehensive guide
+---
 
-3. **COPIAR_COLAR.md** (New file, +147 lines)
-   - Complete user guide in Portuguese
-   - Step-by-step instructions
-   - Workflow examples
-   - Keyboard shortcuts reference
-   - Troubleshooting tips
+### 4. Tradução Automática por API em Linhas Selecionadas ✅
+**Status:** Implementado
 
-### Key Features
+**O que foi feito:**
+- **Com seleção:** Traduz apenas as linhas selecionadas
+- **Sem seleção:** Traduz todas as linhas não traduzidas
+- Mensagem de confirmação diferenciada
+- Tooltip explicativo no botão
 
-#### Copy (Ctrl+C)
-```
-Selected rows → Clipboard in TSV format
-Format: "Original Text[TAB]Translation"
-Example:
-Hello	Olá
-World	Mundo
-Game	Jogo
-```
+**Como usar:**
+1. Selecione linhas específicas (Ctrl+Click)
+2. Clique em `🤖 Traduzir Auto (F5)`
+3. Apenas as linhas selecionadas serão traduzidas
 
-#### Paste (Ctrl+V)
-- Accepts TSV format (with original text)
-- Accepts plain text (translations only)
-- Automatically saves to translation memory
-- Updates visual status indicators
-- Provides user feedback
+---
 
-### Code Quality
+### 5. Aplicar Memória em Linhas Selecionadas ✅
+**Status:** Implementado
 
-✅ **Security**: No vulnerabilities detected by CodeQL
-✅ **Testing**: Comprehensive unit tests for all scenarios
-✅ **Documentation**: Full docstrings and user guide
-✅ **Code Review**: All issues addressed
-✅ **Compatibility**: Cross-platform support
+**O que foi feito:**
+- **Com seleção:** Aplica apenas às linhas selecionadas
+- **Sem seleção:** Aplica a todas as linhas não traduzidas
+- Mensagem de sucesso mostra quantas traduções foram aplicadas
+- Tooltip explicativo no botão
 
-### Test Coverage
+---
 
-All tests pass ✅:
-- Copy format correctness
-- Paste parsing (TSV and plain text)
-- Empty translation handling
-- Tabs within translation preservation
-- Cross-platform line ending compatibility (Windows/Unix/Mac)
+## 📝 Documentação Atualizada
 
-## User Experience Improvements
+### README.md
+Seções atualizadas:
+1. **Interface Moderna** - Ajuste de colunas e tecla Delete
+2. **Visualizador de Banco de Dados** - Atalho Delete e ajuste
+3. **Como Usar > Traduzir** - Dica de tradução seletiva
 
-### Workflow Example
+---
 
-1. **Select rows** in translation table (1, 5, 8, 12)
-2. **Copy** with Ctrl+C
-3. **Open Notepad** and paste (Ctrl+V)
-4. **Edit translations** after the tab character
-5. **Copy all** from Notepad (Ctrl+A, Ctrl+C)
-6. **Return to Game Translator** and select same rows
-7. **Paste** with Ctrl+V
-8. **Done!** Translations automatically saved to memory
+## 🎯 Funcionalidades Principais
 
-### User Feedback
+### Tabelas Interativas
+- **Redimensionamento Horizontal**: Arraste bordas das colunas
+- **Auto-ajuste Vertical**: Altura se ajusta ao conteúdo
+- **Recalculo Automático**: Ao redimensionar colunas
+- **Seleção Múltipla**: Ctrl+Click
 
-- Status bar messages: "X linha(s) copiada(s)"
-- Confirmation dialogs for mismatched counts
-- Visual updates (green background for translated rows)
-- Log entries for all operations
+### Tradução Inteligente
+- **Sem Seleção**: Processa todas as linhas não traduzidas
+- **Com Seleção**: Processa apenas as selecionadas
+- **Feedback**: Tooltips e mensagens explicativas
+- **Confirmação**: Diálogos mostram quantas linhas
 
-## Technical Highlights
+### Exclusão de Dados
+- **Botão Visual**: `🗑️ Excluir Selecionado`
+- **Atalho**: Tecla **Delete**
+- **Confirmação**: Diálogo de confirmação
 
-### Robust Parsing
-```python
-# Handles multiple formats
-if len(parts) >= 2:
-    # TSV format: preserves tabs in translation
-    translation = '\t'.join(parts[1:]).strip()
-else:
-    # Plain text: single value per line
-    translation = parts[0].strip()
-```
+---
 
-### Cross-Platform Line Endings
-```python
-# Works on Windows, Unix, Mac
-clipboard_lines = clipboard_text.strip().splitlines()
-```
+## ✅ Compatibilidade
 
-### Comprehensive Validation
-```python
-# Null checking for all table items
-if not translation:
-    continue
+- **Retrocompatível**: Funcionalidades anteriores mantidas
+- **Comportamento Padrão**: Sem seleção, funciona como antes
+- **Aditivo**: Novas funcionalidades não substituem antigas
+- **Sem Breaking Changes**: Nada foi removido
 
-translation_item = self.table.item(row, 2)
-if translation_item:
-    translation_item.setText(translation)
-```
+---
 
-## Documentation
+## 🎉 Benefícios
 
-### User Guide (COPIAR_COLAR.md)
-- How to use copy/paste
-- Recommended workflows
-- Accepted formats
-- Keyboard shortcuts
-- Practical examples
-- Warnings and tips
-- Integration with other features
+1. **Mais Controle**: Ajuste a interface ao seu gosto
+2. **Mais Eficiente**: Tradução seletiva economiza tempo e créditos
+3. **Mais Rápido**: Atalho Delete agiliza exclusões
+4. **Mais Claro**: Tooltips explicam cada funcionalidade
+5. **Melhor Visualização**: Auto-ajuste vertical mostra todo o texto
 
-### Code Documentation
-- Detailed docstrings with format specifications
-- Clear comments explaining logic
-- Parameter and return value descriptions
+---
 
-## Statistics
+## 📸 Testes Sugeridos
 
-- **Total lines added**: 312
-- **Commits**: 6
-- **Test cases**: 6
-- **Documentation pages**: 1 (comprehensive guide)
-- **Code review iterations**: 3
-- **Security alerts**: 0
+### Teste 1: Ajuste de Colunas
+1. Importe um arquivo
+2. Arraste a borda entre colunas
+3. Observe o ajuste automático da altura
 
-## Benefits for Users
+### Teste 2: Tradução Seletiva
+1. Selecione 2-3 linhas (Ctrl+Click)
+2. Clique em "🤖 Traduzir Auto"
+3. Apenas as selecionadas serão traduzidas
 
-1. **Faster Translation**: Edit multiple lines at once in external editor
-2. **Familiar Tools**: Use Notepad, Excel, or preferred text editor
-3. **Batch Editing**: Copy 100 lines, edit, paste back
-4. **Flexibility**: Multiple selection and paste strategies
-5. **Safety**: All translations saved to memory automatically
-6. **Feedback**: Clear status messages and confirmations
+### Teste 3: Exclusão com Delete
+1. Abra "🗄️ Ver Banco"
+2. Selecione uma tradução
+3. Pressione Delete
+4. Confirme a exclusão
 
-## Compatibility
+---
 
-✅ Windows (primary platform)
-✅ External apps (Notepad, Excel, LibreOffice, etc.)
-✅ Different line endings (\r\n, \n, \r)
-✅ Tabs within text preserved
-✅ Multi-language text (UTF-8)
-
-## Final Status
-
-🎉 **Implementation Complete and Ready for Use**
-
-All requirements from the problem statement have been successfully implemented and tested. The feature is production-ready with:
-- ✅ Full functionality
-- ✅ Comprehensive documentation
-- ✅ Extensive testing
-- ✅ No security vulnerabilities
-- ✅ Code review approved
-- ✅ Cross-platform compatibility
-
-Users can now efficiently translate multiple entries by copying them to Notepad, editing, and pasting back - all while maintaining the order and integrity of their translations.
+**Desenvolvido para Game Translator v1.0.0**
