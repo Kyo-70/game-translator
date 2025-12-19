@@ -1,0 +1,1614 @@
+"""
+Janela Principal da Interface Gráfica
+Interface moderna e escura para tradução de jogos com segurança e otimização
+"""
+
+import sys
+import os
+from pathlib import Path
+
+# Adiciona o diretório src ao path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                              QPushButton, QTableWidget, QTableWidgetItem, QLabel,
+                              QFileDialog, QComboBox, QProgressBar, QMessageBox,
+                              QHeaderView, QLineEdit, QDialog, QTextEdit, QGroupBox,
+                              QTabWidget, QSpinBox, QCheckBox, QSplitter, QFrame,
+                              QStatusBar, QToolBar, QMenu, QMenuBar, QApplication)
+from PySide6.QtCore import Qt, QThread, Signal, QTimer
+from PySide6.QtGui import QPalette, QColor, QFont, QAction, QIcon
+
+from database import TranslationMemory, create_new_database
+from regex_profiles import RegexProfileManager
+from file_processor import FileProcessor, TranslationEntry
+from smart_translator import SmartTranslator
+from translation_api import TranslationAPIManager
+from logger import app_logger
+from security import (SecurityValidator, ResourceMonitor, ChunkProcessor,
+                     AutoSaveManager, LIMITS, is_safe_to_proceed, 
+                     safe_operation, memory_safe)
+
+# ============================================================================
+# WORKER THREADS
+# ============================================================================
+
+class TranslationWorker(QThread):
+    """Thread para processamento de tradução em background"""
+    
+    progress = Signal(int)
+    status = Signal(str)
+    finished = Signal(dict)
+    error = Signal(str)
+    
+    def __init__(self, texts, api_manager, smart_translator):
+        super().__init__()
+        self.texts = texts
+        self.api_manager = api_manager
+        self.smart_translator = smart_translator
+        self._cancelled = False
+    
+    def cancel(self):
+        """Cancela a operação"""
+        self._cancelled = True
+    
+    def run(self):
+        """Executa tradução automática com segurança"""
+        try:
+            results = {}
+            total = len(self.texts)
+            monitor = ResourceMonitor()
+            
+            for i, text in enumerate(self.texts):
+                if self._cancelled:
+                    self.status.emit("Operação cancelada")
+                    break
+                
+                # Verifica recursos periodicamente
+                if i % 10 == 0:
+                    ok, msg = monitor.check_resources()
+                    if not ok:
+                        monitor.force_gc_if_needed()
+                
+                # Primeiro tenta tradução inteligente
+                translation = self.smart_translator.translate(text)
+                
+                # Se não encontrou, tenta API
+                if not translation and self.api_manager.active_api:
+                    translation = self.api_manager.translate(text)
+                
+                if translation:
+                    results[text] = translation
+                
+                # Atualiza progresso
+                progress_value = int((i + 1) / total * 100)
+                self.progress.emit(progress_value)
+                self.status.emit(f"Traduzindo {i+1}/{total}...")
+            
+            self.finished.emit(results)
+            
+        except Exception as e:
+            self.error.emit(str(e))
+
+class FileLoadWorker(QThread):
+    """Thread para carregar arquivos grandes"""
+    
+    progress = Signal(int)
+    status = Signal(str)
+    finished = Signal(list)
+    error = Signal(str)
+    
+    def __init__(self, file_processor, filepath, profile):
+        super().__init__()
+        self.file_processor = file_processor
+        self.filepath = filepath
+        self.profile = profile
+    
+    def run(self):
+        """Carrega arquivo com segurança"""
+        try:
+            self.status.emit("Validando arquivo...")
+            
+            # Valida arquivo
+            ok, msg = SecurityValidator.validate_file_path(self.filepath)
+            if not ok:
+                self.error.emit(msg)
+                return
+            
+            ok, msg = SecurityValidator.validate_file_size(self.filepath)
+            if not ok:
+                self.error.emit(msg)
+                return
+            
+            self.progress.emit(20)
+            self.status.emit("Carregando arquivo...")
+            
+            # Carrega arquivo
+            if not self.file_processor.load_file(self.filepath):
+                self.error.emit("Falha ao carregar arquivo")
+                return
+            
+            self.progress.emit(50)
+            self.status.emit("Extraindo textos...")
+            
+            # Extrai textos
+            entries = self.file_processor.extract_texts()
+            
+            # Valida quantidade
+            if len(entries) > LIMITS.MAX_ENTRIES_PER_FILE:
+                self.error.emit(f"Arquivo muito grande: {len(entries)} entradas (máximo: {LIMITS.MAX_ENTRIES_PER_FILE})")
+                return
+            
+            self.progress.emit(100)
+            self.finished.emit(entries)
+            
+        except Exception as e:
+            self.error.emit(str(e))
+
+# ============================================================================
+# DIÁLOGOS
+# ============================================================================
+
+class DatabaseSelectorDialog(QDialog):
+    """Diálogo para selecionar ou criar banco de dados"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        self.selected_db_path = None
+        
+        self.setWindowTitle("Selecionar Banco de Dados")
+        self.setGeometry(300, 300, 500, 200)
+        self.setModal(True)
+        
+        self._create_ui()
+    
+    def _create_ui(self):
+        """Cria interface do diálogo"""
+        layout = QVBoxLayout(self)
+        
+        # Informação
+        info_label = QLabel(
+            "Selecione um banco de dados existente ou crie um novo.\n"
+            "O banco de dados armazena todas as suas traduções."
+        )
+        info_label.setWordWrap(True)
+        layout.addWidget(info_label)
+        
+        # Campo de caminho
+        path_layout = QHBoxLayout()
+        self.path_input = QLineEdit()
+        self.path_input.setPlaceholderText("Caminho do banco de dados (.db)")
+        path_layout.addWidget(self.path_input)
+        
+        btn_browse = QPushButton("Procurar...")
+        btn_browse.clicked.connect(self.browse_database)
+        path_layout.addWidget(btn_browse)
+        
+        layout.addLayout(path_layout)
+        
+        # Botões de ação
+        buttons_layout = QHBoxLayout()
+        
+        btn_new = QPushButton("Criar Novo")
+        btn_new.clicked.connect(self.create_new_database)
+        buttons_layout.addWidget(btn_new)
+        
+        btn_open = QPushButton("Abrir Selecionado")
+        btn_open.clicked.connect(self.open_selected)
+        buttons_layout.addWidget(btn_open)
+        
+        btn_cancel = QPushButton("Cancelar")
+        btn_cancel.clicked.connect(self.reject)
+        buttons_layout.addWidget(btn_cancel)
+        
+        layout.addLayout(buttons_layout)
+    
+    def browse_database(self):
+        """Procura um banco de dados existente"""
+        filepath, _ = QFileDialog.getOpenFileName(
+            self,
+            "Selecionar Banco de Dados",
+            "",
+            "Banco de Dados (*.db);;Todos os Arquivos (*)"
+        )
+        
+        if filepath:
+            self.path_input.setText(filepath)
+    
+    def create_new_database(self):
+        """Cria um novo banco de dados"""
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "Criar Novo Banco de Dados",
+            "translation_memory.db",
+            "Banco de Dados (*.db)"
+        )
+        
+        if filepath:
+            if not filepath.endswith('.db'):
+                filepath += '.db'
+            
+            if create_new_database(filepath):
+                self.selected_db_path = filepath
+                self.accept()
+            else:
+                QMessageBox.critical(self, "Erro", "Falha ao criar banco de dados")
+    
+    def open_selected(self):
+        """Abre o banco de dados selecionado"""
+        filepath = self.path_input.text().strip()
+        
+        if not filepath:
+            QMessageBox.warning(self, "Aviso", "Selecione um banco de dados")
+            return
+        
+        if not os.path.exists(filepath):
+            QMessageBox.warning(self, "Aviso", "Arquivo não encontrado")
+            return
+        
+        self.selected_db_path = filepath
+        self.accept()
+
+class DatabaseViewerDialog(QDialog):
+    """Diálogo para visualizar e gerenciar o banco de dados"""
+    
+    def __init__(self, parent, translation_memory: TranslationMemory):
+        super().__init__(parent)
+        
+        self.translation_memory = translation_memory
+        
+        self.setWindowTitle("Visualizador de Banco de Dados")
+        self.setGeometry(150, 150, 1000, 600)
+        
+        self._create_ui()
+        self._load_data()
+    
+    def _create_ui(self):
+        """Cria interface do diálogo"""
+        layout = QVBoxLayout(self)
+        
+        # Informações do banco
+        info_layout = QHBoxLayout()
+        
+        stats = self.translation_memory.get_stats()
+        self.info_label = QLabel(
+            f"📁 Banco: {stats.get('db_path', 'Não conectado')} | "
+            f"📊 Total: {stats['total_translations']} traduções | "
+            f"🔄 Usos: {stats['total_usage']}"
+        )
+        info_layout.addWidget(self.info_label)
+        
+        layout.addLayout(info_layout)
+        
+        # Barra de busca
+        search_layout = QHBoxLayout()
+        
+        search_layout.addWidget(QLabel("Buscar:"))
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Digite para buscar...")
+        self.search_input.textChanged.connect(self._on_search)
+        search_layout.addWidget(self.search_input)
+        
+        search_layout.addWidget(QLabel("Categoria:"))
+        self.category_combo = QComboBox()
+        self.category_combo.addItem("Todas")
+        self.category_combo.addItems(self.translation_memory.get_categories())
+        self.category_combo.currentTextChanged.connect(self._on_filter)
+        search_layout.addWidget(self.category_combo)
+        
+        btn_refresh = QPushButton("🔄 Atualizar")
+        btn_refresh.clicked.connect(self._load_data)
+        search_layout.addWidget(btn_refresh)
+        
+        layout.addLayout(search_layout)
+        
+        # Tabela de traduções
+        self.table = QTableWidget()
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels([
+            "ID", "Texto Original", "Tradução", "Categoria", "Usos", "Atualizado"
+        ])
+        
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
+        
+        self.table.setAlternatingRowColors(True)
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.itemDoubleClicked.connect(self._on_item_double_clicked)
+        
+        layout.addWidget(self.table)
+        
+        # Botões de ação
+        buttons_layout = QHBoxLayout()
+        
+        btn_edit = QPushButton("✏️ Editar Selecionado")
+        btn_edit.clicked.connect(self._edit_selected)
+        buttons_layout.addWidget(btn_edit)
+        
+        btn_delete = QPushButton("🗑️ Excluir Selecionado")
+        btn_delete.clicked.connect(self._delete_selected)
+        buttons_layout.addWidget(btn_delete)
+        
+        btn_export = QPushButton("📤 Exportar CSV")
+        btn_export.clicked.connect(self._export_csv)
+        buttons_layout.addWidget(btn_export)
+        
+        btn_import = QPushButton("📥 Importar CSV")
+        btn_import.clicked.connect(self._import_csv)
+        buttons_layout.addWidget(btn_import)
+        
+        buttons_layout.addStretch()
+        
+        btn_close = QPushButton("Fechar")
+        btn_close.clicked.connect(self.accept)
+        buttons_layout.addWidget(btn_close)
+        
+        layout.addLayout(buttons_layout)
+    
+    def _load_data(self, search_term: str = None, category: str = None):
+        """Carrega dados na tabela"""
+        if category == "Todas":
+            category = None
+        
+        translations = self.translation_memory.get_all_translations(
+            category=category,
+            search_term=search_term
+        )
+        
+        self.table.setRowCount(len(translations))
+        
+        for i, t in enumerate(translations):
+            self.table.setItem(i, 0, QTableWidgetItem(str(t['id'])))
+            self.table.setItem(i, 1, QTableWidgetItem(t['original_text'][:100]))
+            self.table.setItem(i, 2, QTableWidgetItem(t['translated_text'][:100]))
+            self.table.setItem(i, 3, QTableWidgetItem(t['category']))
+            self.table.setItem(i, 4, QTableWidgetItem(str(t['usage_count'])))
+            self.table.setItem(i, 5, QTableWidgetItem(t['updated_at'][:10] if t['updated_at'] else ''))
+            
+            # Torna ID não editável
+            self.table.item(i, 0).setFlags(self.table.item(i, 0).flags() & ~Qt.ItemIsEditable)
+    
+    def _on_search(self, text):
+        """Callback de busca"""
+        category = self.category_combo.currentText()
+        self._load_data(search_term=text if text else None, 
+                       category=category if category != "Todas" else None)
+    
+    def _on_filter(self, category):
+        """Callback de filtro por categoria"""
+        search = self.search_input.text()
+        self._load_data(search_term=search if search else None,
+                       category=category if category != "Todas" else None)
+    
+    def _on_item_double_clicked(self, item):
+        """Callback de duplo clique"""
+        self._edit_selected()
+    
+    def _edit_selected(self):
+        """Edita tradução selecionada"""
+        selected = self.table.selectedItems()
+        if not selected:
+            QMessageBox.warning(self, "Aviso", "Selecione uma tradução para editar")
+            return
+        
+        row = selected[0].row()
+        translation_id = int(self.table.item(row, 0).text())
+        
+        # Busca dados completos
+        data = self.translation_memory.get_translation_by_id(translation_id)
+        if not data:
+            return
+        
+        # Diálogo de edição
+        dialog = EditTranslationDialog(self, data)
+        if dialog.exec() == QDialog.Accepted:
+            # Atualiza no banco
+            self.translation_memory.update_translation(
+                translation_id,
+                translated_text=dialog.translated_text,
+                category=dialog.category,
+                notes=dialog.notes
+            )
+            self._load_data()
+    
+    def _delete_selected(self):
+        """Exclui tradução selecionada"""
+        selected = self.table.selectedItems()
+        if not selected:
+            QMessageBox.warning(self, "Aviso", "Selecione uma tradução para excluir")
+            return
+        
+        reply = QMessageBox.question(
+            self,
+            "Confirmar Exclusão",
+            "Tem certeza que deseja excluir a tradução selecionada?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            row = selected[0].row()
+            translation_id = int(self.table.item(row, 0).text())
+            
+            if self.translation_memory.delete_translation(translation_id):
+                self._load_data()
+                QMessageBox.information(self, "Sucesso", "Tradução excluída!")
+    
+    def _export_csv(self):
+        """Exporta para CSV"""
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "Exportar para CSV",
+            "translations.csv",
+            "CSV Files (*.csv)"
+        )
+        
+        if filepath:
+            if self.translation_memory.export_to_file(filepath):
+                QMessageBox.information(self, "Sucesso", f"Exportado para:\n{filepath}")
+            else:
+                QMessageBox.critical(self, "Erro", "Falha ao exportar")
+    
+    def _import_csv(self):
+        """Importa de CSV"""
+        filepath, _ = QFileDialog.getOpenFileName(
+            self,
+            "Importar de CSV",
+            "",
+            "CSV Files (*.csv)"
+        )
+        
+        if filepath:
+            imported, errors = self.translation_memory.import_from_file(filepath)
+            QMessageBox.information(
+                self, 
+                "Importação Concluída",
+                f"Importados: {imported}\nErros: {errors}"
+            )
+            self._load_data()
+
+class EditTranslationDialog(QDialog):
+    """Diálogo para editar uma tradução"""
+    
+    def __init__(self, parent, data: dict):
+        super().__init__(parent)
+        
+        self.data = data
+        self.translated_text = data['translated_text']
+        self.category = data['category']
+        self.notes = data['notes']
+        
+        self.setWindowTitle("Editar Tradução")
+        self.setGeometry(350, 350, 500, 300)
+        
+        self._create_ui()
+    
+    def _create_ui(self):
+        """Cria interface"""
+        layout = QVBoxLayout(self)
+        
+        # Texto original (somente leitura)
+        layout.addWidget(QLabel("Texto Original:"))
+        original_text = QTextEdit()
+        original_text.setPlainText(self.data['original_text'])
+        original_text.setReadOnly(True)
+        original_text.setMaximumHeight(80)
+        layout.addWidget(original_text)
+        
+        # Tradução
+        layout.addWidget(QLabel("Tradução:"))
+        self.translation_input = QTextEdit()
+        self.translation_input.setPlainText(self.data['translated_text'])
+        self.translation_input.setMaximumHeight(80)
+        layout.addWidget(self.translation_input)
+        
+        # Categoria
+        cat_layout = QHBoxLayout()
+        cat_layout.addWidget(QLabel("Categoria:"))
+        self.category_input = QLineEdit()
+        self.category_input.setText(self.data['category'])
+        cat_layout.addWidget(self.category_input)
+        layout.addLayout(cat_layout)
+        
+        # Notas
+        layout.addWidget(QLabel("Notas:"))
+        self.notes_input = QTextEdit()
+        self.notes_input.setPlainText(self.data['notes'])
+        self.notes_input.setMaximumHeight(60)
+        layout.addWidget(self.notes_input)
+        
+        # Botões
+        buttons_layout = QHBoxLayout()
+        
+        btn_save = QPushButton("Salvar")
+        btn_save.clicked.connect(self._save)
+        buttons_layout.addWidget(btn_save)
+        
+        btn_cancel = QPushButton("Cancelar")
+        btn_cancel.clicked.connect(self.reject)
+        buttons_layout.addWidget(btn_cancel)
+        
+        layout.addLayout(buttons_layout)
+    
+    def _save(self):
+        """Salva alterações"""
+        self.translated_text = self.translation_input.toPlainText()
+        self.category = self.category_input.text()
+        self.notes = self.notes_input.toPlainText()
+        self.accept()
+
+class SettingsDialog(QDialog):
+    """Diálogo de configurações"""
+    
+    def __init__(self, parent, api_manager, translation_memory, profile_manager):
+        super().__init__(parent)
+        
+        self.api_manager = api_manager
+        self.translation_memory = translation_memory
+        self.profile_manager = profile_manager
+        
+        self.setWindowTitle("Configurações")
+        self.setGeometry(200, 200, 600, 500)
+        
+        self._create_ui()
+    
+    def _create_ui(self):
+        """Cria interface do diálogo"""
+        layout = QVBoxLayout(self)
+        
+        # Tabs
+        tabs = QTabWidget()
+        
+        # Tab de API
+        api_tab = QWidget()
+        api_layout = QVBoxLayout(api_tab)
+        
+        # DeepL
+        deepl_group = QGroupBox("DeepL API")
+        deepl_layout = QHBoxLayout()
+        self.deepl_key_input = QLineEdit()
+        self.deepl_key_input.setPlaceholderText("Cole sua chave da API DeepL")
+        self.deepl_key_input.setEchoMode(QLineEdit.Password)
+        deepl_layout.addWidget(self.deepl_key_input)
+        btn_save_deepl = QPushButton("Salvar")
+        btn_save_deepl.clicked.connect(self.save_deepl_key)
+        deepl_layout.addWidget(btn_save_deepl)
+        deepl_group.setLayout(deepl_layout)
+        api_layout.addWidget(deepl_group)
+        
+        # Google
+        google_group = QGroupBox("Google Translate API")
+        google_layout = QHBoxLayout()
+        self.google_key_input = QLineEdit()
+        self.google_key_input.setPlaceholderText("Cole sua chave da API Google")
+        self.google_key_input.setEchoMode(QLineEdit.Password)
+        google_layout.addWidget(self.google_key_input)
+        btn_save_google = QPushButton("Salvar")
+        btn_save_google.clicked.connect(self.save_google_key)
+        google_layout.addWidget(btn_save_google)
+        google_group.setLayout(google_layout)
+        api_layout.addWidget(google_group)
+        
+        # Seletor de API ativa
+        active_layout = QHBoxLayout()
+        active_layout.addWidget(QLabel("API Ativa:"))
+        self.combo_active_api = QComboBox()
+        self.combo_active_api.addItems(["Nenhuma"] + self.api_manager.get_available_apis())
+        self.combo_active_api.currentTextChanged.connect(self._on_api_changed)
+        active_layout.addWidget(self.combo_active_api)
+        api_layout.addLayout(active_layout)
+        
+        api_layout.addStretch()
+        tabs.addTab(api_tab, "APIs de Tradução")
+        
+        # Tab de Segurança
+        security_tab = QWidget()
+        security_layout = QVBoxLayout(security_tab)
+        
+        security_group = QGroupBox("Limites de Segurança")
+        limits_layout = QVBoxLayout()
+        
+        limits_layout.addWidget(QLabel(f"• Tamanho máximo de arquivo: {LIMITS.MAX_FILE_SIZE_MB} MB"))
+        limits_layout.addWidget(QLabel(f"• Uso máximo de memória: {LIMITS.MAX_MEMORY_USAGE_MB} MB"))
+        limits_layout.addWidget(QLabel(f"• Uso máximo de CPU: {LIMITS.MAX_CPU_PERCENT}%"))
+        limits_layout.addWidget(QLabel(f"• Máximo de entradas por arquivo: {LIMITS.MAX_ENTRIES_PER_FILE}"))
+        limits_layout.addWidget(QLabel(f"• Timeout de operações: {LIMITS.OPERATION_TIMEOUT_SEC}s"))
+        
+        security_group.setLayout(limits_layout)
+        security_layout.addWidget(security_group)
+        
+        # Monitor de recursos
+        monitor_group = QGroupBox("Monitor de Recursos")
+        monitor_layout = QVBoxLayout()
+        
+        monitor = ResourceMonitor()
+        self.memory_label = QLabel(f"Memória em uso: {monitor.get_memory_usage_mb():.1f} MB")
+        self.cpu_label = QLabel(f"CPU: {monitor.get_cpu_percent():.1f}%")
+        
+        monitor_layout.addWidget(self.memory_label)
+        monitor_layout.addWidget(self.cpu_label)
+        
+        btn_refresh_monitor = QPushButton("Atualizar")
+        btn_refresh_monitor.clicked.connect(self._refresh_monitor)
+        monitor_layout.addWidget(btn_refresh_monitor)
+        
+        monitor_group.setLayout(monitor_layout)
+        security_layout.addWidget(monitor_group)
+        
+        security_layout.addStretch()
+        tabs.addTab(security_tab, "Segurança")
+        
+        # Tab de Logs
+        logs_tab = QWidget()
+        logs_layout = QVBoxLayout(logs_tab)
+        
+        self.logs_text = QTextEdit()
+        self.logs_text.setReadOnly(True)
+        self.logs_text.setPlainText(app_logger.get_recent_logs(100))
+        logs_layout.addWidget(self.logs_text)
+        
+        btn_refresh_logs = QPushButton("Atualizar Logs")
+        btn_refresh_logs.clicked.connect(lambda: self.logs_text.setPlainText(app_logger.get_recent_logs(100)))
+        logs_layout.addWidget(btn_refresh_logs)
+        
+        tabs.addTab(logs_tab, "Logs")
+        
+        layout.addWidget(tabs)
+        
+        # Botão fechar
+        btn_close = QPushButton("Fechar")
+        btn_close.clicked.connect(self.accept)
+        layout.addWidget(btn_close)
+    
+    def save_deepl_key(self):
+        """Salva chave DeepL"""
+        key = self.deepl_key_input.text().strip()
+        if key:
+            self.api_manager.add_deepl(key)
+            self.combo_active_api.clear()
+            self.combo_active_api.addItems(["Nenhuma"] + self.api_manager.get_available_apis())
+            QMessageBox.information(self, "Sucesso", "Chave DeepL salva!")
+            app_logger.info("Chave DeepL configurada")
+    
+    def save_google_key(self):
+        """Salva chave Google"""
+        key = self.google_key_input.text().strip()
+        if key:
+            self.api_manager.add_google(key)
+            self.combo_active_api.clear()
+            self.combo_active_api.addItems(["Nenhuma"] + self.api_manager.get_available_apis())
+            QMessageBox.information(self, "Sucesso", "Chave Google salva!")
+            app_logger.info("Chave Google configurada")
+    
+    def _on_api_changed(self, api_name):
+        """Callback quando API é alterada"""
+        if api_name != "Nenhuma":
+            self.api_manager.set_active_api(api_name)
+    
+    def _refresh_monitor(self):
+        """Atualiza monitor de recursos"""
+        monitor = ResourceMonitor()
+        self.memory_label.setText(f"Memória em uso: {monitor.get_memory_usage_mb():.1f} MB")
+        self.cpu_label.setText(f"CPU: {monitor.get_cpu_percent():.1f}%")
+
+# ============================================================================
+# JANELA PRINCIPAL
+# ============================================================================
+
+class MainWindow(QMainWindow):
+    """Janela principal do aplicativo"""
+    
+    def __init__(self):
+        super().__init__()
+        
+        # Inicializa componentes
+        self.translation_memory = TranslationMemory()  # Sem conexão inicial
+        self.profile_manager = RegexProfileManager()
+        self.smart_translator = None  # Inicializado após conectar ao banco
+        self.api_manager = TranslationAPIManager()
+        self.file_processor = None
+        self.current_file = None
+        self.entries = []
+        
+        # Monitor de recursos
+        self.resource_monitor = ResourceMonitor()
+        
+        # Configura interface
+        self.setWindowTitle("Game Translator - Sistema de Tradução para Jogos e Mods")
+        self.setGeometry(100, 100, 1300, 800)
+        
+        # Aplica tema escuro
+        self._apply_dark_theme()
+        
+        # Cria interface
+        self._create_menu_bar()
+        self._create_ui()
+        self._create_status_bar()
+        
+        # Timer para atualizar status de recursos
+        self.resource_timer = QTimer()
+        self.resource_timer.timeout.connect(self._update_resource_status)
+        self.resource_timer.start(5000)  # A cada 5 segundos
+        
+        # Log inicial
+        app_logger.info("Aplicativo iniciado")
+        
+        # Solicita seleção de banco de dados
+        QTimer.singleShot(100, self._prompt_database_selection)
+    
+    def _apply_dark_theme(self):
+        """Aplica tema escuro profissional"""
+        palette = QPalette()
+        
+        # Cores principais
+        palette.setColor(QPalette.Window, QColor(30, 30, 30))
+        palette.setColor(QPalette.WindowText, QColor(220, 220, 220))
+        palette.setColor(QPalette.Base, QColor(40, 40, 40))
+        palette.setColor(QPalette.AlternateBase, QColor(50, 50, 50))
+        palette.setColor(QPalette.ToolTipBase, QColor(220, 220, 220))
+        palette.setColor(QPalette.ToolTipText, QColor(220, 220, 220))
+        palette.setColor(QPalette.Text, QColor(220, 220, 220))
+        palette.setColor(QPalette.Button, QColor(50, 50, 50))
+        palette.setColor(QPalette.ButtonText, QColor(220, 220, 220))
+        palette.setColor(QPalette.BrightText, Qt.red)
+        palette.setColor(QPalette.Link, QColor(42, 130, 218))
+        palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
+        palette.setColor(QPalette.HighlightedText, Qt.black)
+        
+        self.setPalette(palette)
+        
+        # Estilo adicional
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #1e1e1e;
+            }
+            QPushButton {
+                background-color: #3a3a3a;
+                border: 1px solid #555;
+                border-radius: 4px;
+                padding: 8px 16px;
+                color: #dcdcdc;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #4a4a4a;
+                border: 1px solid #666;
+            }
+            QPushButton:pressed {
+                background-color: #2a2a2a;
+            }
+            QPushButton:disabled {
+                background-color: #2a2a2a;
+                color: #666;
+            }
+            QTableWidget {
+                background-color: #282828;
+                alternate-background-color: #323232;
+                gridline-color: #444;
+                border: 1px solid #555;
+            }
+            QTableWidget::item {
+                padding: 5px;
+            }
+            QTableWidget::item:selected {
+                background-color: #2a82da;
+            }
+            QHeaderView::section {
+                background-color: #3a3a3a;
+                padding: 8px;
+                border: 1px solid #555;
+                font-weight: bold;
+            }
+            QComboBox {
+                background-color: #3a3a3a;
+                border: 1px solid #555;
+                border-radius: 4px;
+                padding: 5px;
+                color: #dcdcdc;
+                min-width: 150px;
+            }
+            QComboBox:hover {
+                border: 1px solid #666;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QProgressBar {
+                border: 1px solid #555;
+                border-radius: 4px;
+                text-align: center;
+                background-color: #282828;
+            }
+            QProgressBar::chunk {
+                background-color: #2a82da;
+            }
+            QLineEdit {
+                background-color: #3a3a3a;
+                border: 1px solid #555;
+                border-radius: 4px;
+                padding: 5px;
+                color: #dcdcdc;
+            }
+            QLabel {
+                color: #dcdcdc;
+            }
+            QGroupBox {
+                border: 1px solid #555;
+                border-radius: 4px;
+                margin-top: 10px;
+                padding-top: 10px;
+                font-weight: bold;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+            QMenuBar {
+                background-color: #2a2a2a;
+                color: #dcdcdc;
+            }
+            QMenuBar::item:selected {
+                background-color: #3a3a3a;
+            }
+            QMenu {
+                background-color: #2a2a2a;
+                color: #dcdcdc;
+                border: 1px solid #555;
+            }
+            QMenu::item:selected {
+                background-color: #2a82da;
+            }
+            QStatusBar {
+                background-color: #2a2a2a;
+                color: #dcdcdc;
+            }
+            QTabWidget::pane {
+                border: 1px solid #555;
+            }
+            QTabBar::tab {
+                background-color: #3a3a3a;
+                color: #dcdcdc;
+                padding: 8px 16px;
+                border: 1px solid #555;
+            }
+            QTabBar::tab:selected {
+                background-color: #2a82da;
+            }
+            QTextEdit {
+                background-color: #282828;
+                color: #dcdcdc;
+                border: 1px solid #555;
+            }
+        """)
+    
+    def _create_menu_bar(self):
+        """Cria barra de menu"""
+        menubar = self.menuBar()
+        
+        # Menu Arquivo
+        file_menu = menubar.addMenu("Arquivo")
+        
+        action_new_db = QAction("Novo Banco de Dados...", self)
+        action_new_db.triggered.connect(self._create_new_database)
+        file_menu.addAction(action_new_db)
+        
+        action_open_db = QAction("Abrir Banco de Dados...", self)
+        action_open_db.triggered.connect(self._open_database)
+        file_menu.addAction(action_open_db)
+        
+        file_menu.addSeparator()
+        
+        action_import = QAction("Importar Arquivo...", self)
+        action_import.setShortcut("Ctrl+O")
+        action_import.triggered.connect(self.import_file)
+        file_menu.addAction(action_import)
+        
+        action_save = QAction("Salvar Arquivo", self)
+        action_save.setShortcut("Ctrl+S")
+        action_save.triggered.connect(self.save_file)
+        file_menu.addAction(action_save)
+        
+        file_menu.addSeparator()
+        
+        action_exit = QAction("Sair", self)
+        action_exit.setShortcut("Ctrl+Q")
+        action_exit.triggered.connect(self.close)
+        file_menu.addAction(action_exit)
+        
+        # Menu Banco de Dados
+        db_menu = menubar.addMenu("Banco de Dados")
+        
+        action_view_db = QAction("Visualizar Banco de Dados...", self)
+        action_view_db.triggered.connect(self._view_database)
+        db_menu.addAction(action_view_db)
+        
+        action_export_db = QAction("Exportar para CSV...", self)
+        action_export_db.triggered.connect(self._export_database)
+        db_menu.addAction(action_export_db)
+        
+        action_import_db = QAction("Importar de CSV...", self)
+        action_import_db.triggered.connect(self._import_database)
+        db_menu.addAction(action_import_db)
+        
+        # Menu Ferramentas
+        tools_menu = menubar.addMenu("Ferramentas")
+        
+        action_settings = QAction("Configurações...", self)
+        action_settings.triggered.connect(self.open_settings)
+        tools_menu.addAction(action_settings)
+        
+        # Menu Ajuda
+        help_menu = menubar.addMenu("Ajuda")
+        
+        action_about = QAction("Sobre", self)
+        action_about.triggered.connect(self._show_about)
+        help_menu.addAction(action_about)
+    
+    def _create_ui(self):
+        """Cria a interface do usuário"""
+        # Widget central
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        
+        # Layout principal
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(15, 15, 15, 15)
+        
+        # Cabeçalho
+        header_layout = self._create_header()
+        main_layout.addLayout(header_layout)
+        
+        # Info do banco de dados
+        self.db_info_label = QLabel("⚠️ Nenhum banco de dados conectado")
+        self.db_info_label.setStyleSheet("color: #ffa500; font-weight: bold;")
+        main_layout.addWidget(self.db_info_label)
+        
+        # Barra de ferramentas
+        toolbar_layout = self._create_toolbar()
+        main_layout.addLayout(toolbar_layout)
+        
+        # Tabela de traduções
+        self.table = self._create_translation_table()
+        main_layout.addWidget(self.table)
+        
+        # Barra de progresso
+        progress_layout = QHBoxLayout()
+        self.status_label = QLabel("Pronto")
+        progress_layout.addWidget(self.status_label)
+        progress_layout.addStretch()
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMaximumWidth(300)
+        self.progress_bar.setValue(0)
+        progress_layout.addWidget(self.progress_bar)
+        main_layout.addLayout(progress_layout)
+    
+    def _create_header(self):
+        """Cria o cabeçalho da aplicação"""
+        layout = QVBoxLayout()
+        
+        title = QLabel("Game Translator")
+        title.setFont(QFont("Arial", 24, QFont.Bold))
+        title.setAlignment(Qt.AlignCenter)
+        
+        subtitle = QLabel("Sistema Profissional de Tradução para Jogos e Mods")
+        subtitle.setFont(QFont("Arial", 10))
+        subtitle.setAlignment(Qt.AlignCenter)
+        subtitle.setStyleSheet("color: #888;")
+        
+        layout.addWidget(title)
+        layout.addWidget(subtitle)
+        
+        return layout
+    
+    def _create_toolbar(self):
+        """Cria a barra de ferramentas"""
+        layout = QHBoxLayout()
+        
+        # Botão importar arquivo
+        self.btn_import = QPushButton("📁 Importar Arquivo")
+        self.btn_import.clicked.connect(self.import_file)
+        layout.addWidget(self.btn_import)
+        
+        # Seletor de perfil
+        layout.addWidget(QLabel("Perfil:"))
+        self.combo_profile = QComboBox()
+        self.combo_profile.addItems(self.profile_manager.get_all_profile_names())
+        layout.addWidget(self.combo_profile)
+        
+        # Botão traduzir automaticamente
+        self.btn_auto_translate = QPushButton("🤖 Traduzir Auto")
+        self.btn_auto_translate.clicked.connect(self.auto_translate)
+        self.btn_auto_translate.setEnabled(False)
+        layout.addWidget(self.btn_auto_translate)
+        
+        # Botão aplicar traduções inteligentes
+        self.btn_smart_translate = QPushButton("⚡ Aplicar Memória")
+        self.btn_smart_translate.clicked.connect(self.apply_smart_translations)
+        self.btn_smart_translate.setEnabled(False)
+        layout.addWidget(self.btn_smart_translate)
+        
+        # Botão salvar
+        self.btn_save = QPushButton("💾 Salvar")
+        self.btn_save.clicked.connect(self.save_file)
+        self.btn_save.setEnabled(False)
+        layout.addWidget(self.btn_save)
+        
+        # Botão visualizar banco
+        self.btn_view_db = QPushButton("🗄️ Ver Banco")
+        self.btn_view_db.clicked.connect(self._view_database)
+        layout.addWidget(self.btn_view_db)
+        
+        # Botão configurações
+        self.btn_settings = QPushButton("⚙️ Config")
+        self.btn_settings.clicked.connect(self.open_settings)
+        layout.addWidget(self.btn_settings)
+        
+        layout.addStretch()
+        
+        return layout
+    
+    def _create_translation_table(self):
+        """Cria a tabela de traduções"""
+        table = QTableWidget()
+        table.setColumnCount(4)
+        table.setHorizontalHeaderLabels(["#", "Texto Original", "Tradução", "Status"])
+        
+        # Configurações da tabela
+        table.setAlternatingRowColors(True)
+        table.setSelectionBehavior(QTableWidget.SelectRows)
+        table.setEditTriggers(QTableWidget.DoubleClicked | QTableWidget.EditKeyPressed)
+        
+        # Ajusta largura das colunas
+        header = table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        
+        # Conecta evento de edição
+        table.itemChanged.connect(self.on_translation_edited)
+        
+        return table
+    
+    def _create_status_bar(self):
+        """Cria a barra de status"""
+        self.statusBar = QStatusBar()
+        self.setStatusBar(self.statusBar)
+        
+        # Labels de status
+        self.stats_label = QLabel("Total: 0 | Traduzidas: 0 | Pendentes: 0")
+        self.statusBar.addWidget(self.stats_label)
+        
+        self.statusBar.addPermanentWidget(QLabel(" | "))
+        
+        self.resource_label = QLabel("RAM: 0 MB | CPU: 0%")
+        self.statusBar.addPermanentWidget(self.resource_label)
+    
+    def _update_resource_status(self):
+        """Atualiza status de recursos na barra de status"""
+        memory = self.resource_monitor.get_memory_usage_mb()
+        cpu = self.resource_monitor.get_cpu_percent()
+        
+        # Cor baseada no uso
+        if memory > LIMITS.MAX_MEMORY_USAGE_MB * 0.8:
+            color = "#ff6b6b"  # Vermelho
+        elif memory > LIMITS.MAX_MEMORY_USAGE_MB * 0.5:
+            color = "#ffa500"  # Laranja
+        else:
+            color = "#4ecdc4"  # Verde
+        
+        self.resource_label.setText(f"RAM: {memory:.0f} MB | CPU: {cpu:.0f}%")
+        self.resource_label.setStyleSheet(f"color: {color};")
+    
+    def _prompt_database_selection(self):
+        """Solicita seleção de banco de dados ao iniciar"""
+        dialog = DatabaseSelectorDialog(self)
+        
+        if dialog.exec() == QDialog.Accepted and dialog.selected_db_path:
+            self._connect_database(dialog.selected_db_path)
+        else:
+            self.db_info_label.setText("⚠️ Nenhum banco de dados conectado - Selecione um no menu Arquivo")
+    
+    def _connect_database(self, db_path: str):
+        """Conecta a um banco de dados"""
+        if self.translation_memory.connect(db_path):
+            self.smart_translator = SmartTranslator(self.translation_memory)
+            
+            stats = self.translation_memory.get_stats()
+            self.db_info_label.setText(
+                f"✅ Banco conectado: {os.path.basename(db_path)} | "
+                f"📊 {stats['total_translations']} traduções"
+            )
+            self.db_info_label.setStyleSheet("color: #4ecdc4; font-weight: bold;")
+            
+            app_logger.info(f"Banco de dados conectado: {db_path}")
+        else:
+            QMessageBox.critical(self, "Erro", "Falha ao conectar ao banco de dados")
+    
+    def _create_new_database(self):
+        """Cria um novo banco de dados"""
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "Criar Novo Banco de Dados",
+            "translation_memory.db",
+            "Banco de Dados (*.db)"
+        )
+        
+        if filepath:
+            if not filepath.endswith('.db'):
+                filepath += '.db'
+            
+            if create_new_database(filepath):
+                self._connect_database(filepath)
+            else:
+                QMessageBox.critical(self, "Erro", "Falha ao criar banco de dados")
+    
+    def _open_database(self):
+        """Abre um banco de dados existente"""
+        filepath, _ = QFileDialog.getOpenFileName(
+            self,
+            "Abrir Banco de Dados",
+            "",
+            "Banco de Dados (*.db)"
+        )
+        
+        if filepath:
+            self._connect_database(filepath)
+    
+    def _view_database(self):
+        """Abre visualizador do banco de dados"""
+        if not self.translation_memory.is_connected():
+            QMessageBox.warning(self, "Aviso", "Conecte a um banco de dados primeiro")
+            return
+        
+        dialog = DatabaseViewerDialog(self, self.translation_memory)
+        dialog.exec()
+    
+    def _export_database(self):
+        """Exporta banco de dados para CSV"""
+        if not self.translation_memory.is_connected():
+            QMessageBox.warning(self, "Aviso", "Conecte a um banco de dados primeiro")
+            return
+        
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "Exportar para CSV",
+            "translations.csv",
+            "CSV Files (*.csv)"
+        )
+        
+        if filepath:
+            if self.translation_memory.export_to_file(filepath):
+                QMessageBox.information(self, "Sucesso", f"Exportado para:\n{filepath}")
+            else:
+                QMessageBox.critical(self, "Erro", "Falha ao exportar")
+    
+    def _import_database(self):
+        """Importa traduções de CSV"""
+        if not self.translation_memory.is_connected():
+            QMessageBox.warning(self, "Aviso", "Conecte a um banco de dados primeiro")
+            return
+        
+        filepath, _ = QFileDialog.getOpenFileName(
+            self,
+            "Importar de CSV",
+            "",
+            "CSV Files (*.csv)"
+        )
+        
+        if filepath:
+            imported, errors = self.translation_memory.import_from_file(filepath)
+            QMessageBox.information(
+                self,
+                "Importação Concluída",
+                f"Importados: {imported}\nErros: {errors}"
+            )
+    
+    def import_file(self):
+        """Importa arquivo para tradução"""
+        # Verifica banco de dados
+        if not self.translation_memory.is_connected():
+            reply = QMessageBox.question(
+                self,
+                "Banco de Dados",
+                "Nenhum banco de dados conectado.\nDeseja selecionar um agora?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            
+            if reply == QMessageBox.Yes:
+                self._prompt_database_selection()
+            
+            if not self.translation_memory.is_connected():
+                return
+        
+        # Verifica recursos
+        ok, msg = is_safe_to_proceed()
+        if not ok:
+            QMessageBox.warning(self, "Recursos Insuficientes", msg)
+            return
+        
+        filepath, _ = QFileDialog.getOpenFileName(
+            self,
+            "Selecionar Arquivo",
+            "",
+            "Arquivos Suportados (*.json *.xml);;Arquivos JSON (*.json);;Arquivos XML (*.xml)"
+        )
+        
+        if not filepath:
+            return
+        
+        try:
+            self.status_label.setText("Validando arquivo...")
+            self.progress_bar.setValue(10)
+            
+            # Valida arquivo
+            ok, msg = SecurityValidator.validate_file_path(filepath)
+            if not ok:
+                QMessageBox.warning(self, "Arquivo Inválido", msg)
+                return
+            
+            ok, msg = SecurityValidator.validate_file_size(filepath)
+            if not ok:
+                QMessageBox.warning(self, "Arquivo Muito Grande", msg)
+                return
+            
+            app_logger.info(f"Importando arquivo: {filepath}")
+            
+            # Obtém perfil selecionado
+            profile_name = self.combo_profile.currentText()
+            profile = self.profile_manager.get_profile(profile_name)
+            
+            # Cria processador
+            self.file_processor = FileProcessor(profile)
+            
+            self.status_label.setText("Carregando arquivo...")
+            self.progress_bar.setValue(30)
+            
+            # Carrega arquivo
+            if not self.file_processor.load_file(filepath):
+                raise Exception("Falha ao carregar arquivo")
+            
+            self.status_label.setText("Extraindo textos...")
+            self.progress_bar.setValue(50)
+            
+            # Extrai textos
+            self.entries = self.file_processor.extract_texts()
+            
+            # Valida quantidade
+            if len(self.entries) > LIMITS.MAX_ENTRIES_PER_FILE:
+                QMessageBox.warning(
+                    self,
+                    "Arquivo Muito Grande",
+                    f"O arquivo contém {len(self.entries)} entradas.\n"
+                    f"Máximo permitido: {LIMITS.MAX_ENTRIES_PER_FILE}"
+                )
+                return
+            
+            self.status_label.setText("Aplicando memória de tradução...")
+            self.progress_bar.setValue(70)
+            
+            # Aplica traduções da memória
+            self._apply_memory_translations()
+            
+            self.status_label.setText("Atualizando interface...")
+            self.progress_bar.setValue(90)
+            
+            # Atualiza tabela
+            self._populate_table()
+            
+            # Atualiza status
+            self.current_file = filepath
+            self.status_label.setText(f"Arquivo carregado: {os.path.basename(filepath)}")
+            self.progress_bar.setValue(100)
+            self._update_statistics()
+            
+            # Habilita botões
+            self.btn_auto_translate.setEnabled(True)
+            self.btn_smart_translate.setEnabled(True)
+            self.btn_save.setEnabled(True)
+            
+            app_logger.log_file_operation("import", filepath, True)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro ao importar arquivo:\n{str(e)}")
+            app_logger.error(f"Erro ao importar arquivo: {e}", exc_info=True)
+            self.status_label.setText("Erro ao carregar arquivo")
+            self.progress_bar.setValue(0)
+    
+    def _apply_memory_translations(self):
+        """Aplica traduções da memória aos textos extraídos"""
+        if not self.smart_translator:
+            return
+        
+        for entry in self.entries:
+            translation = self.smart_translator.translate(entry.original_text)
+            if translation:
+                entry.translated_text = translation
+    
+    def _populate_table(self):
+        """Popula a tabela com as entradas"""
+        self.table.blockSignals(True)  # Bloqueia sinais durante população
+        
+        self.table.setRowCount(0)
+        self.table.setRowCount(len(self.entries))
+        
+        for i, entry in enumerate(self.entries):
+            # Coluna de índice
+            index_item = QTableWidgetItem(str(i + 1))
+            index_item.setFlags(index_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(i, 0, index_item)
+            
+            # Coluna de texto original
+            original_item = QTableWidgetItem(entry.original_text)
+            original_item.setFlags(original_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(i, 1, original_item)
+            
+            # Coluna de tradução
+            translation_item = QTableWidgetItem(entry.translated_text)
+            self.table.setItem(i, 2, translation_item)
+            
+            # Coluna de status
+            if entry.translated_text:
+                status_item = QTableWidgetItem("✅")
+                for col in range(4):
+                    if self.table.item(i, col):
+                        self.table.item(i, col).setBackground(QColor(40, 60, 40))
+            else:
+                status_item = QTableWidgetItem("⏳")
+            
+            status_item.setFlags(status_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(i, 3, status_item)
+        
+        self.table.blockSignals(False)  # Reativa sinais
+    
+    def on_translation_edited(self, item):
+        """Callback quando uma tradução é editada"""
+        if item.column() != 2:  # Apenas coluna de tradução
+            return
+        
+        row = item.row()
+        if row < len(self.entries):
+            # Atualiza entrada
+            self.entries[row].translated_text = item.text()
+            
+            # Adiciona à memória
+            original = self.entries[row].original_text
+            translated = item.text()
+            
+            if translated and self.translation_memory.is_connected():
+                self.translation_memory.add_translation(original, translated)
+                
+                if self.smart_translator:
+                    self.smart_translator.learn_pattern(original, translated)
+                
+                app_logger.log_translation(original, translated, "manual")
+                
+                # Atualiza status visual
+                self.table.item(row, 3).setText("✅")
+                for col in range(4):
+                    if self.table.item(row, col):
+                        self.table.item(row, col).setBackground(QColor(40, 60, 40))
+            
+            self._update_statistics()
+    
+    def apply_smart_translations(self):
+        """Aplica traduções inteligentes usando padrões"""
+        if not self.smart_translator:
+            QMessageBox.warning(self, "Aviso", "Conecte a um banco de dados primeiro")
+            return
+        
+        try:
+            self.status_label.setText("Aplicando traduções inteligentes...")
+            
+            # Coleta textos não traduzidos
+            untranslated = [e.original_text for e in self.entries if not e.translated_text]
+            
+            if not untranslated:
+                QMessageBox.information(self, "Informação", "Todos os textos já estão traduzidos!")
+                return
+            
+            # Aplica tradução inteligente
+            translations = self.smart_translator.auto_translate_batch(untranslated)
+            
+            # Atualiza entradas
+            count = 0
+            for entry in self.entries:
+                if not entry.translated_text and entry.original_text in translations:
+                    entry.translated_text = translations[entry.original_text]
+                    count += 1
+            
+            # Atualiza tabela
+            self._populate_table()
+            self._update_statistics()
+            
+            self.status_label.setText(f"Traduções inteligentes aplicadas: {count}")
+            QMessageBox.information(self, "Sucesso", f"{count} traduções aplicadas automaticamente!")
+            
+            app_logger.info(f"Traduções inteligentes aplicadas: {count}")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro ao aplicar traduções:\n{str(e)}")
+            app_logger.error(f"Erro ao aplicar traduções inteligentes: {e}", exc_info=True)
+    
+    def auto_translate(self):
+        """Inicia tradução automática via API"""
+        if not self.api_manager.active_api:
+            QMessageBox.warning(
+                self,
+                "API não configurada",
+                "Configure uma API de tradução nas configurações antes de usar esta função."
+            )
+            self.open_settings()
+            return
+        
+        # Coleta textos não traduzidos
+        untranslated = [e.original_text for e in self.entries if not e.translated_text]
+        
+        if not untranslated:
+            QMessageBox.information(self, "Informação", "Todos os textos já estão traduzidos!")
+            return
+        
+        # Confirma ação
+        reply = QMessageBox.question(
+            self,
+            "Confirmar Tradução Automática",
+            f"Traduzir {len(untranslated)} textos usando {self.api_manager.active_api.upper()}?\n\n"
+            "Isso pode consumir créditos da API.",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply != QMessageBox.Yes:
+            return
+        
+        # Inicia worker thread
+        self.status_label.setText("Traduzindo automaticamente...")
+        self.btn_auto_translate.setEnabled(False)
+        
+        self.worker = TranslationWorker(untranslated, self.api_manager, self.smart_translator)
+        self.worker.progress.connect(self.progress_bar.setValue)
+        self.worker.status.connect(self.status_label.setText)
+        self.worker.finished.connect(self.on_auto_translate_finished)
+        self.worker.error.connect(self.on_auto_translate_error)
+        self.worker.start()
+    
+    def on_auto_translate_finished(self, translations):
+        """Callback quando tradução automática termina"""
+        # Atualiza entradas
+        count = 0
+        for entry in self.entries:
+            if not entry.translated_text and entry.original_text in translations:
+                entry.translated_text = translations[entry.original_text]
+                
+                # Adiciona à memória
+                if self.translation_memory.is_connected():
+                    self.translation_memory.add_translation(
+                        entry.original_text,
+                        entry.translated_text
+                    )
+                count += 1
+        
+        # Atualiza interface
+        self._populate_table()
+        self._update_statistics()
+        
+        self.status_label.setText(f"Tradução automática concluída: {count} textos")
+        self.progress_bar.setValue(0)
+        self.btn_auto_translate.setEnabled(True)
+        
+        QMessageBox.information(self, "Sucesso", f"{count} textos traduzidos automaticamente!")
+        app_logger.info(f"Tradução automática concluída: {count} textos")
+    
+    def on_auto_translate_error(self, error):
+        """Callback quando ocorre erro na tradução automática"""
+        self.status_label.setText("Erro na tradução automática")
+        self.progress_bar.setValue(0)
+        self.btn_auto_translate.setEnabled(True)
+        
+        QMessageBox.critical(self, "Erro", f"Erro na tradução automática:\n{error}")
+        app_logger.error(f"Erro na tradução automática: {error}")
+    
+    def save_file(self):
+        """Salva arquivo traduzido"""
+        if not self.file_processor or not self.current_file:
+            return
+        
+        try:
+            self.status_label.setText("Salvando arquivo...")
+            
+            # Cria dicionário de traduções
+            translations = {
+                entry.original_text: entry.translated_text
+                for entry in self.entries
+                if entry.translated_text
+            }
+            
+            # Aplica traduções
+            translated_content = self.file_processor.apply_translations(translations)
+            
+            # Salva arquivo (com backup automático)
+            if self.file_processor.save_file(self.current_file, translated_content, create_backup=True):
+                self.status_label.setText("Arquivo salvo com sucesso!")
+                QMessageBox.information(
+                    self, 
+                    "Sucesso", 
+                    "Arquivo traduzido salvo com sucesso!\n\nUm backup do original foi criado."
+                )
+                app_logger.log_file_operation("save", self.current_file, True)
+            else:
+                raise Exception("Falha ao salvar arquivo")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro ao salvar arquivo:\n{str(e)}")
+            app_logger.error(f"Erro ao salvar arquivo: {e}", exc_info=True)
+            self.status_label.setText("Erro ao salvar arquivo")
+    
+    def open_settings(self):
+        """Abre diálogo de configurações"""
+        dialog = SettingsDialog(self, self.api_manager, self.translation_memory, self.profile_manager)
+        dialog.exec()
+    
+    def _update_statistics(self):
+        """Atualiza estatísticas na interface"""
+        total = len(self.entries)
+        translated = sum(1 for e in self.entries if e.translated_text)
+        pending = total - translated
+        
+        self.stats_label.setText(f"Total: {total} | Traduzidas: {translated} | Pendentes: {pending}")
+        
+        if total > 0:
+            progress = int(translated / total * 100)
+            self.progress_bar.setValue(progress)
+    
+    def _show_about(self):
+        """Mostra diálogo Sobre"""
+        QMessageBox.about(
+            self,
+            "Sobre Game Translator",
+            "<h2>Game Translator v1.0.0</h2>"
+            "<p>Sistema Profissional de Tradução para Jogos e Mods</p>"
+            "<p><b>Características:</b></p>"
+            "<ul>"
+            "<li>Preservação total da estrutura de arquivos</li>"
+            "<li>Memória de tradução com SQLite</li>"
+            "<li>Tradução inteligente com padrões</li>"
+            "<li>Suporte a APIs de tradução</li>"
+            "<li>Sistema de segurança integrado</li>"
+            "</ul>"
+            "<p>Desenvolvido por <b>Manus AI</b></p>"
+        )
+    
+    def closeEvent(self, event):
+        """Evento de fechamento da janela"""
+        # Verifica se há alterações não salvas
+        if self.entries:
+            unsaved = sum(1 for e in self.entries if e.translated_text and not e.original_text)
+            
+            if unsaved > 0:
+                reply = QMessageBox.question(
+                    self,
+                    "Sair",
+                    "Há traduções não salvas. Deseja sair mesmo assim?",
+                    QMessageBox.Yes | QMessageBox.No
+                )
+                
+                if reply == QMessageBox.No:
+                    event.ignore()
+                    return
+        
+        # Fecha conexão com banco de dados
+        if self.translation_memory:
+            self.translation_memory.close()
+        
+        # Para timer de recursos
+        self.resource_timer.stop()
+        
+        app_logger.info("Aplicativo encerrado")
+        event.accept()
