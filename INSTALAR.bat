@@ -1,75 +1,57 @@
 @echo off
-chcp 65001 >nul 2>&1
 setlocal EnableDelayedExpansion
 
 :: ============================================================================
-:: GAME TRANSLATOR - INSTALADOR E CONSTRUTOR DE EXECUTÁVEL
-:: Versão: 1.0.0
+:: GAME TRANSLATOR - INSTALADOR E CONSTRUTOR DE EXECUTAVEL
+:: Versao: 1.0.2 - Compativel com Windows 11
 :: ============================================================================
 
-:: Cores
-set "RESET=[0m"
-set "RED=[91m"
-set "GREEN=[92m"
-set "YELLOW=[93m"
-set "BLUE=[94m"
-set "MAGENTA=[95m"
-set "CYAN=[96m"
-set "WHITE=[97m"
-set "BOLD=[1m"
+:: Configura codepage para UTF-8
+chcp 65001 >nul 2>&1
 
-:: Variáveis
-set "PYTHON_MIN_VERSION=3.8"
+:: Variaveis de diretorio
 set "SCRIPT_DIR=%~dp0"
 set "VENV_DIR=%SCRIPT_DIR%venv"
 set "DIST_DIR=%SCRIPT_DIR%dist"
 set "BUILD_DIR=%SCRIPT_DIR%build"
 
-:: Título da janela
-title Game Translator - Instalador v1.0.0
+:: Titulo da janela
+title Game Translator - Instalador v1.0.2
 
 :MENU_PRINCIPAL
 cls
 echo.
-echo %CYAN%╔══════════════════════════════════════════════════════════════════════════════╗%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%║%RESET%  %BOLD%%MAGENTA%   ██████╗  █████╗ ███╗   ███╗███████╗                                  %RESET%%CYAN%║%RESET%
-echo %CYAN%║%RESET%  %BOLD%%MAGENTA%  ██╔════╝ ██╔══██╗████╗ ████║██╔════╝                                  %RESET%%CYAN%║%RESET%
-echo %CYAN%║%RESET%  %BOLD%%MAGENTA%  ██║  ███╗███████║██╔████╔██║█████╗                                    %RESET%%CYAN%║%RESET%
-echo %CYAN%║%RESET%  %BOLD%%MAGENTA%  ██║   ██║██╔══██║██║╚██╔╝██║██╔══╝                                    %RESET%%CYAN%║%RESET%
-echo %CYAN%║%RESET%  %BOLD%%MAGENTA%  ╚██████╔╝██║  ██║██║ ╚═╝ ██║███████╗                                  %RESET%%CYAN%║%RESET%
-echo %CYAN%║%RESET%  %BOLD%%MAGENTA%   ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝                                  %RESET%%CYAN%║%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%║%RESET%  %BOLD%%YELLOW%  ████████╗██████╗  █████╗ ███╗   ██╗███████╗██╗      █████╗ ████████╗ %RESET%%CYAN%║%RESET%
-echo %CYAN%║%RESET%  %BOLD%%YELLOW%  ╚══██╔══╝██╔══██╗██╔══██╗████╗  ██║██╔════╝██║     ██╔══██╗╚══██╔══╝ %RESET%%CYAN%║%RESET%
-echo %CYAN%║%RESET%  %BOLD%%YELLOW%     ██║   ██████╔╝███████║██╔██╗ ██║███████╗██║     ███████║   ██║    %RESET%%CYAN%║%RESET%
-echo %CYAN%║%RESET%  %BOLD%%YELLOW%     ██║   ██╔══██╗██╔══██║██║╚██╗██║╚════██║██║     ██╔══██║   ██║    %RESET%%CYAN%║%RESET%
-echo %CYAN%║%RESET%  %BOLD%%YELLOW%     ██║   ██║  ██║██║  ██║██║ ╚████║███████║███████╗██║  ██║   ██║    %RESET%%CYAN%║%RESET%
-echo %CYAN%║%RESET%  %BOLD%%YELLOW%     ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝    %RESET%%CYAN%║%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%║%RESET%          %WHITE%Sistema Profissional de Tradução para Jogos e Mods%RESET%               %CYAN%║%RESET%
-echo %CYAN%║%RESET%                         %CYAN%Versão 1.0.0%RESET%                                       %CYAN%║%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%╠══════════════════════════════════════════════════════════════════════════════╣%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%║%RESET%   %GREEN%[1]%RESET% 🚀 Instalação Completa (Recomendado)                                 %CYAN%║%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%║%RESET%   %YELLOW%[2]%RESET% 🔍 Verificar Requisitos do Sistema                                   %CYAN%║%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%║%RESET%   %BLUE%[3]%RESET% 📦 Instalar Dependências (pip)                                        %CYAN%║%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%║%RESET%   %MAGENTA%[4]%RESET% 🔨 Criar Executável (.exe)                                            %CYAN%║%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%║%RESET%   %CYAN%[5]%RESET% ▶️  Executar Programa (modo desenvolvimento)                           %CYAN%║%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%║%RESET%   %WHITE%[6]%RESET% 🛠️  Configurar PATH do Sistema                                         %CYAN%║%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%║%RESET%   %RED%[0]%RESET% ❌ Sair                                                                %CYAN%║%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%╚══════════════════════════════════════════════════════════════════════════════╝%RESET%
+echo ========================================================================
+echo.
+echo     GGGG   AAA  M   M EEEEE     TTTTT RRRR   AAA  N   N  SSSS L      AAA  TTTTT  OOO  RRRR
+echo    G      A   A MM MM E           T   R   R A   A NN  N S     L     A   A   T   O   O R   R
+echo    G  GG AAAAA M M M EEE         T   RRRR  AAAAA N N N  SSS  L     AAAAA   T   O   O RRRR
+echo    G   G A   A M   M E           T   R  R  A   A N  NN     S L     A   A   T   O   O R  R
+echo     GGG  A   A M   M EEEEE       T   R   R A   A N   N SSSS  LLLLL A   A   T    OOO  R   R
+echo.
+echo              Sistema Profissional de Traducao para Jogos e Mods
+echo                              Versao 1.0.2
+echo.
+echo ========================================================================
+echo.
+echo    [1] Instalacao Completa (Recomendado)
+echo.
+echo    [2] Verificar Requisitos do Sistema
+echo.
+echo    [3] Instalar Dependencias (pip)
+echo.
+echo    [4] Criar Executavel (.exe)
+echo.
+echo    [5] Executar Programa (modo desenvolvimento)
+echo.
+echo    [6] Configurar PATH do Sistema
+echo.
+echo    [0] Sair
+echo.
+echo ========================================================================
 echo.
 
-set /p "OPCAO=%BOLD%Digite sua opção: %RESET%"
+set /p "OPCAO=Digite sua opcao: "
 
 if "%OPCAO%"=="1" goto INSTALACAO_COMPLETA
 if "%OPCAO%"=="2" goto VERIFICAR_REQUISITOS
@@ -80,69 +62,72 @@ if "%OPCAO%"=="6" goto CONFIGURAR_PATH
 if "%OPCAO%"=="0" goto SAIR
 
 echo.
-echo %RED%⚠️  Opção inválida! Pressione qualquer tecla para continuar...%RESET%
+echo [AVISO] Opcao invalida! Pressione qualquer tecla para continuar...
 pause >nul
 goto MENU_PRINCIPAL
 
 :: ============================================================================
-:: INSTALAÇÃO COMPLETA
+:: INSTALACAO COMPLETA
 :: ============================================================================
 :INSTALACAO_COMPLETA
 cls
-call :MOSTRAR_CABECALHO "INSTALAÇÃO COMPLETA"
 echo.
-echo %CYAN%Esta opção irá:%RESET%
-echo   %GREEN%✓%RESET% Verificar se Python está instalado
-echo   %GREEN%✓%RESET% Instalar todas as dependências necessárias
-echo   %GREEN%✓%RESET% Criar o executável (.exe)
-echo   %GREEN%✓%RESET% Configurar atalhos
+echo ========================================================================
+echo  INSTALACAO COMPLETA
+echo ========================================================================
 echo.
-echo %YELLOW%⚠️  Este processo pode levar alguns minutos.%RESET%
+echo Esta opcao ira:
+echo   [+] Verificar se Python esta instalado
+echo   [+] Instalar todas as dependencias necessarias
+echo   [+] Criar o executavel (.exe)
+echo   [+] Configurar atalhos
 echo.
-set /p "CONFIRMA=%BOLD%Deseja continuar? (S/N): %RESET%"
+echo [AVISO] Este processo pode levar alguns minutos.
+echo.
+set /p "CONFIRMA=Deseja continuar? (S/N): "
 if /i not "%CONFIRMA%"=="S" goto MENU_PRINCIPAL
 
 echo.
-echo %CYAN%══════════════════════════════════════════════════════════════════════════════%RESET%
-echo %BOLD%ETAPA 1/4: Verificando Python...%RESET%
-echo %CYAN%══════════════════════════════════════════════════════════════════════════════%RESET%
+echo ========================================================================
+echo ETAPA 1/4: Verificando Python...
+echo ========================================================================
 call :VERIFICAR_PYTHON
 if errorlevel 1 goto MENU_PRINCIPAL
 
 echo.
-echo %CYAN%══════════════════════════════════════════════════════════════════════════════%RESET%
-echo %BOLD%ETAPA 2/4: Instalando dependências...%RESET%
-echo %CYAN%══════════════════════════════════════════════════════════════════════════════%RESET%
+echo ========================================================================
+echo ETAPA 2/4: Instalando dependencias...
+echo ========================================================================
 call :INSTALAR_DEPS
 if errorlevel 1 goto MENU_PRINCIPAL
 
 echo.
-echo %CYAN%══════════════════════════════════════════════════════════════════════════════%RESET%
-echo %BOLD%ETAPA 3/4: Criando executável...%RESET%
-echo %CYAN%══════════════════════════════════════════════════════════════════════════════%RESET%
+echo ========================================================================
+echo ETAPA 3/4: Criando executavel...
+echo ========================================================================
 call :CRIAR_EXE
 if errorlevel 1 goto MENU_PRINCIPAL
 
 echo.
-echo %CYAN%══════════════════════════════════════════════════════════════════════════════%RESET%
-echo %BOLD%ETAPA 4/4: Finalizando instalação...%RESET%
-echo %CYAN%══════════════════════════════════════════════════════════════════════════════%RESET%
+echo ========================================================================
+echo ETAPA 4/4: Finalizando instalacao...
+echo ========================================================================
 call :FINALIZAR_INSTALACAO
 
 echo.
-echo %GREEN%╔══════════════════════════════════════════════════════════════════════════════╗%RESET%
-echo %GREEN%║%RESET%                                                                              %GREEN%║%RESET%
-echo %GREEN%║%RESET%   %BOLD%%GREEN%✅ INSTALAÇÃO CONCLUÍDA COM SUCESSO!%RESET%                                    %GREEN%║%RESET%
-echo %GREEN%║%RESET%                                                                              %GREEN%║%RESET%
-echo %GREEN%║%RESET%   O executável foi criado em:                                                %GREEN%║%RESET%
-echo %GREEN%║%RESET%   %CYAN%%DIST_DIR%\GameTranslator.exe%RESET%                         %GREEN%║%RESET%
-echo %GREEN%║%RESET%                                                                              %GREEN%║%RESET%
-echo %GREEN%║%RESET%   Você pode executar o programa diretamente ou criar um atalho              %GREEN%║%RESET%
-echo %GREEN%║%RESET%   na área de trabalho.                                                       %GREEN%║%RESET%
-echo %GREEN%║%RESET%                                                                              %GREEN%║%RESET%
-echo %GREEN%╚══════════════════════════════════════════════════════════════════════════════╝%RESET%
+echo ========================================================================
 echo.
-set /p "ABRIR=%BOLD%Deseja abrir o programa agora? (S/N): %RESET%"
+echo   [OK] INSTALACAO CONCLUIDA COM SUCESSO!
+echo.
+echo   O executavel foi criado em:
+echo   %DIST_DIR%\GameTranslator.exe
+echo.
+echo   Voce pode executar o programa diretamente ou criar um atalho
+echo   na area de trabalho.
+echo.
+echo ========================================================================
+echo.
+set /p "ABRIR=Deseja abrir o programa agora? (S/N): "
 if /i "%ABRIR%"=="S" (
     start "" "%DIST_DIR%\GameTranslator.exe"
 )
@@ -155,185 +140,247 @@ goto MENU_PRINCIPAL
 :: ============================================================================
 :VERIFICAR_REQUISITOS
 cls
-call :MOSTRAR_CABECALHO "VERIFICAÇÃO DE REQUISITOS"
+echo.
+echo ========================================================================
+echo  VERIFICACAO DE REQUISITOS
+echo ========================================================================
+echo.
+
+set "ERROS=0"
+set "AVISOS=0"
+
+:: Verifica Sistema Operacional
+echo [INFO] Sistema Operacional:
+for /f "tokens=2 delims==" %%a in ('systeminfo ^| findstr /B /C:"OS Name"') do echo    %%a
+for /f "tokens=2 delims==" %%a in ('systeminfo ^| findstr /B /C:"Nome do sistema"') do echo    %%a
 echo.
 
 :: Verifica Python
-echo %CYAN%🔍 Verificando Python...%RESET%
-call :VERIFICAR_PYTHON_SILENCIOSO
+echo [INFO] Verificando Python...
+python --version >nul 2>&1
 if errorlevel 1 (
-    echo    %RED%❌ Python não encontrado ou versão incompatível%RESET%
-    set "PYTHON_OK=NAO"
+    echo    [ERRO] Python NAO encontrado
+    set /a ERROS+=1
 ) else (
-    echo    %GREEN%✅ Python encontrado: !PYTHON_VERSION!%RESET%
-    set "PYTHON_OK=SIM"
+    for /f "tokens=2" %%v in ('python --version 2^>nul') do echo    [OK] Python encontrado: %%v
 )
 
 :: Verifica pip
 echo.
-echo %CYAN%🔍 Verificando pip...%RESET%
+echo [INFO] Verificando pip...
 pip --version >nul 2>&1
 if errorlevel 1 (
-    echo    %RED%❌ pip não encontrado%RESET%
-    set "PIP_OK=NAO"
+    echo    [ERRO] pip NAO encontrado
+    set /a ERROS+=1
 ) else (
-    for /f "tokens=2" %%v in ('pip --version 2^>nul') do set "PIP_VERSION=%%v"
-    echo    %GREEN%✅ pip encontrado: !PIP_VERSION!%RESET%
-    set "PIP_OK=SIM"
+    for /f "tokens=2" %%v in ('pip --version 2^>nul') do echo    [OK] pip encontrado: %%v
 )
 
 :: Verifica bibliotecas
 echo.
-echo %CYAN%🔍 Verificando bibliotecas necessárias...%RESET%
+echo [INFO] Verificando bibliotecas Python...
 
-call :VERIFICAR_BIBLIOTECA PySide6
-call :VERIFICAR_BIBLIOTECA requests
-call :VERIFICAR_BIBLIOTECA psutil
-
-:: Verifica espaço em disco
-echo.
-echo %CYAN%🔍 Verificando espaço em disco...%RESET%
-for /f "tokens=3" %%a in ('dir /-c "%SCRIPT_DIR%" 2^>nul ^| find "bytes free"') do set "ESPACO_LIVRE=%%a"
-echo    %GREEN%✅ Espaço disponível: !ESPACO_LIVRE! bytes%RESET%
-
-:: Verifica memória
-echo.
-echo %CYAN%🔍 Verificando memória do sistema...%RESET%
-for /f "skip=1" %%p in ('wmic os get FreePhysicalMemory 2^>nul') do (
-    set "MEM_LIVRE=%%p"
-    goto :MEM_DONE
-)
-:MEM_DONE
-set /a "MEM_LIVRE_MB=!MEM_LIVRE!/1024" 2>nul
-echo    %GREEN%✅ Memória livre: !MEM_LIVRE_MB! MB%RESET%
-
-echo.
-echo %CYAN%══════════════════════════════════════════════════════════════════════════════%RESET%
-echo %BOLD%RESUMO:%RESET%
-echo %CYAN%══════════════════════════════════════════════════════════════════════════════%RESET%
-
-if "%PYTHON_OK%"=="SIM" (
-    echo   %GREEN%✅%RESET% Python: OK
+python -c "import PySide6" >nul 2>&1
+if errorlevel 1 (
+    echo    [AVISO] PySide6: Nao instalado
+    set /a AVISOS+=1
 ) else (
-    echo   %RED%❌%RESET% Python: NECESSÁRIO INSTALAR
+    echo    [OK] PySide6: Instalado
 )
 
-if "%PIP_OK%"=="SIM" (
-    echo   %GREEN%✅%RESET% pip: OK
+python -c "import requests" >nul 2>&1
+if errorlevel 1 (
+    echo    [AVISO] requests: Nao instalado
+    set /a AVISOS+=1
 ) else (
-    echo   %RED%❌%RESET% pip: NECESSÁRIO INSTALAR
+    echo    [OK] requests: Instalado
 )
 
+python -c "import psutil" >nul 2>&1
+if errorlevel 1 (
+    echo    [AVISO] psutil: Nao instalado
+    set /a AVISOS+=1
+) else (
+    echo    [OK] psutil: Instalado
+)
+
+pyinstaller --version >nul 2>&1
+if errorlevel 1 (
+    echo    [AVISO] PyInstaller: Nao instalado (necessario para criar .exe)
+    set /a AVISOS+=1
+) else (
+    echo    [OK] PyInstaller: Instalado
+)
+
+:: Verifica arquivos do projeto
+echo.
+echo [INFO] Verificando arquivos do projeto...
+
+if exist "%SCRIPT_DIR%src\main.py" (
+    echo    [OK] src\main.py: Encontrado
+) else (
+    echo    [ERRO] src\main.py: NAO ENCONTRADO
+    set /a ERROS+=1
+)
+
+if exist "%SCRIPT_DIR%src\database.py" (
+    echo    [OK] src\database.py: Encontrado
+) else (
+    echo    [ERRO] src\database.py: NAO ENCONTRADO
+    set /a ERROS+=1
+)
+
+if exist "%SCRIPT_DIR%src\gui\main_window.py" (
+    echo    [OK] src\gui\main_window.py: Encontrado
+) else (
+    echo    [ERRO] src\gui\main_window.py: NAO ENCONTRADO
+    set /a ERROS+=1
+)
+
+if exist "%SCRIPT_DIR%dist\GameTranslator.exe" (
+    echo    [OK] dist\GameTranslator.exe: Executavel criado
+) else (
+    echo    [INFO] dist\GameTranslator.exe: Executavel nao criado ainda
+)
+
+:: Resumo
+echo.
+echo ========================================================================
+echo  RESUMO DA VERIFICACAO
+echo ========================================================================
+echo.
+
+if !ERROS! EQU 0 (
+    if !AVISOS! EQU 0 (
+        echo   [OK] SISTEMA TOTALMENTE COMPATIVEL!
+        echo.
+        echo   Seu sistema esta pronto para executar o Game Translator.
+        echo   Execute a opcao [1] para instalacao completa.
+    ) else (
+        echo   [AVISO] SISTEMA COMPATIVEL COM AVISOS
+        echo.
+        echo   Avisos encontrados: !AVISOS!
+        echo   O programa deve funcionar, mas algumas dependencias precisam ser instaladas.
+        echo   Execute a opcao [3] para instalar dependencias.
+    )
+) else (
+    echo   [ERRO] PROBLEMAS ENCONTRADOS
+    echo.
+    echo   Erros criticos: !ERROS!
+    echo   Avisos: !AVISOS!
+    echo.
+    echo   Corrija os erros antes de continuar.
+)
+
+echo.
+echo ========================================================================
 echo.
 pause
 goto MENU_PRINCIPAL
 
-:VERIFICAR_BIBLIOTECA
-set "LIB_NAME=%~1"
-python -c "import %LIB_NAME%" >nul 2>&1
-if errorlevel 1 (
-    echo    %YELLOW%⚠️  %LIB_NAME%: Não instalado%RESET%
-) else (
-    echo    %GREEN%✅ %LIB_NAME%: Instalado%RESET%
-)
-exit /b 0
-
 :: ============================================================================
-:: INSTALAR DEPENDÊNCIAS
+:: INSTALAR DEPENDENCIAS
 :: ============================================================================
 :INSTALAR_DEPENDENCIAS
 cls
-call :MOSTRAR_CABECALHO "INSTALAÇÃO DE DEPENDÊNCIAS"
+echo.
+echo ========================================================================
+echo  INSTALACAO DE DEPENDENCIAS
+echo ========================================================================
 echo.
 
 call :VERIFICAR_PYTHON
 if errorlevel 1 goto MENU_PRINCIPAL
 
 echo.
-echo %CYAN%📦 Atualizando pip...%RESET%
+echo [INFO] Atualizando pip...
 python -m pip install --upgrade pip
 
 echo.
-echo %CYAN%📦 Instalando dependências do requirements.txt...%RESET%
+echo [INFO] Instalando dependencias do requirements.txt...
 echo.
 
 if exist "%SCRIPT_DIR%requirements.txt" (
     pip install -r "%SCRIPT_DIR%requirements.txt"
     if errorlevel 1 (
         echo.
-        echo %RED%❌ Erro ao instalar dependências!%RESET%
+        echo [ERRO] Erro ao instalar dependencias!
         pause
         goto MENU_PRINCIPAL
     )
 ) else (
-    echo %YELLOW%⚠️  Arquivo requirements.txt não encontrado. Instalando manualmente...%RESET%
+    echo [AVISO] Arquivo requirements.txt nao encontrado. Instalando manualmente...
     pip install PySide6>=6.6.0
     pip install requests>=2.31.0
     pip install psutil>=5.9.0
 )
 
 echo.
-echo %CYAN%📦 Instalando PyInstaller para criar executável...%RESET%
+echo [INFO] Instalando PyInstaller para criar executavel...
 pip install pyinstaller
 
 echo.
-echo %GREEN%✅ Todas as dependências foram instaladas com sucesso!%RESET%
+echo [OK] Todas as dependencias foram instaladas com sucesso!
 echo.
 pause
 goto MENU_PRINCIPAL
 
 :INSTALAR_DEPS
+echo [INFO] Instalando dependencias...
 python -m pip install --upgrade pip >nul 2>&1
-echo %CYAN%   📦 Instalando PySide6...%RESET%
+echo    [+] Instalando PySide6...
 pip install PySide6>=6.6.0 >nul 2>&1
-echo %CYAN%   📦 Instalando requests...%RESET%
+echo    [+] Instalando requests...
 pip install requests>=2.31.0 >nul 2>&1
-echo %CYAN%   📦 Instalando psutil...%RESET%
+echo    [+] Instalando psutil...
 pip install psutil>=5.9.0 >nul 2>&1
-echo %CYAN%   📦 Instalando PyInstaller...%RESET%
+echo    [+] Instalando PyInstaller...
 pip install pyinstaller >nul 2>&1
-echo %GREEN%   ✅ Dependências instaladas!%RESET%
+echo    [OK] Dependencias instaladas!
 exit /b 0
 
 :: ============================================================================
-:: CRIAR EXECUTÁVEL
+:: CRIAR EXECUTAVEL
 :: ============================================================================
 :CRIAR_EXECUTAVEL
 cls
-call :MOSTRAR_CABECALHO "CRIAÇÃO DO EXECUTÁVEL"
+echo.
+echo ========================================================================
+echo  CRIACAO DO EXECUTAVEL
+echo ========================================================================
 echo.
 
 call :VERIFICAR_PYTHON
 if errorlevel 1 goto MENU_PRINCIPAL
 
 :: Verifica PyInstaller
-echo %CYAN%🔍 Verificando PyInstaller...%RESET%
+echo [INFO] Verificando PyInstaller...
 pyinstaller --version >nul 2>&1
 if errorlevel 1 (
-    echo %YELLOW%⚠️  PyInstaller não encontrado. Instalando...%RESET%
+    echo [AVISO] PyInstaller nao encontrado. Instalando...
     pip install pyinstaller
 )
 
 echo.
-echo %CYAN%🔨 Criando executável...%RESET%
-echo %YELLOW%   ⏳ Este processo pode levar alguns minutos...%RESET%
+echo [INFO] Criando executavel...
+echo [AVISO] Este processo pode levar alguns minutos...
 echo.
 
 call :CRIAR_EXE
 
 echo.
 if exist "%DIST_DIR%\GameTranslator.exe" (
-    echo %GREEN%✅ Executável criado com sucesso!%RESET%
+    echo [OK] Executavel criado com sucesso!
     echo.
-    echo %CYAN%📁 Localização: %DIST_DIR%\GameTranslator.exe%RESET%
+    echo Localizacao: %DIST_DIR%\GameTranslator.exe
     echo.
-    set /p "ABRIR_PASTA=%BOLD%Deseja abrir a pasta do executável? (S/N): %RESET%"
+    set /p "ABRIR_PASTA=Deseja abrir a pasta do executavel? (S/N): "
     if /i "!ABRIR_PASTA!"=="S" (
         explorer "%DIST_DIR%"
     )
 ) else (
-    echo %RED%❌ Erro ao criar executável!%RESET%
-    echo %YELLOW%   Verifique os logs acima para mais detalhes.%RESET%
+    echo [ERRO] Erro ao criar executavel!
+    echo Verifique os logs acima para mais detalhes.
 )
 
 echo.
@@ -347,14 +394,15 @@ cd /d "%SCRIPT_DIR%"
 if exist "%BUILD_DIR%" rmdir /s /q "%BUILD_DIR%" >nul 2>&1
 if exist "%DIST_DIR%" rmdir /s /q "%DIST_DIR%" >nul 2>&1
 
-:: Cria o executável
+:: Cria diretorio de profiles se nao existir
+if not exist "%SCRIPT_DIR%profiles" mkdir "%SCRIPT_DIR%profiles"
+
+:: Cria o executavel
 pyinstaller --name="GameTranslator" ^
     --onefile ^
     --windowed ^
     --noconfirm ^
     --clean ^
-    --add-data "profiles;profiles" ^
-    --add-data "src;src" ^
     --hidden-import=PySide6.QtCore ^
     --hidden-import=PySide6.QtGui ^
     --hidden-import=PySide6.QtWidgets ^
@@ -363,15 +411,15 @@ pyinstaller --name="GameTranslator" ^
     src/main.py
 
 if errorlevel 1 (
-    echo %RED%   ❌ Erro durante a criação do executável%RESET%
+    echo [ERRO] Erro durante a criacao do executavel
     exit /b 1
 )
 
-:: Copia arquivos necessários para a pasta dist
+:: Copia arquivos necessarios para a pasta dist
 if not exist "%DIST_DIR%\profiles" mkdir "%DIST_DIR%\profiles"
-xcopy /s /y "%SCRIPT_DIR%profiles\*" "%DIST_DIR%\profiles\" >nul 2>&1
+if exist "%SCRIPT_DIR%profiles\*" xcopy /s /y "%SCRIPT_DIR%profiles\*" "%DIST_DIR%\profiles\" >nul 2>&1
 
-echo %GREEN%   ✅ Executável criado!%RESET%
+echo [OK] Executavel criado!
 exit /b 0
 
 :: ============================================================================
@@ -379,20 +427,23 @@ exit /b 0
 :: ============================================================================
 :EXECUTAR_PROGRAMA
 cls
-call :MOSTRAR_CABECALHO "EXECUTAR PROGRAMA"
+echo.
+echo ========================================================================
+echo  EXECUTAR PROGRAMA
+echo ========================================================================
 echo.
 
 call :VERIFICAR_PYTHON
 if errorlevel 1 goto MENU_PRINCIPAL
 
-echo %CYAN%▶️  Iniciando Game Translator em modo desenvolvimento...%RESET%
+echo [INFO] Iniciando Game Translator em modo desenvolvimento...
 echo.
 
 cd /d "%SCRIPT_DIR%src"
 python main.py
 
 echo.
-echo %CYAN%Programa encerrado.%RESET%
+echo [INFO] Programa encerrado.
 pause
 goto MENU_PRINCIPAL
 
@@ -401,99 +452,95 @@ goto MENU_PRINCIPAL
 :: ============================================================================
 :CONFIGURAR_PATH
 cls
-call :MOSTRAR_CABECALHO "CONFIGURAR PATH DO SISTEMA"
 echo.
-echo %YELLOW%⚠️  ATENÇÃO: Esta operação requer privilégios de administrador.%RESET%
+echo ========================================================================
+echo  CONFIGURAR PATH DO SISTEMA
+echo ========================================================================
 echo.
-echo %CYAN%Esta opção irá adicionar o diretório do executável ao PATH do sistema,%RESET%
-echo %CYAN%permitindo executar 'GameTranslator' diretamente do CMD.%RESET%
+echo [AVISO] Esta operacao requer privilegios de administrador.
 echo.
-echo %CYAN%Diretório a ser adicionado:%RESET%
-echo %WHITE%   %DIST_DIR%%RESET%
+echo Esta opcao ira adicionar o diretorio do executavel ao PATH do sistema,
+echo permitindo executar 'GameTranslator' diretamente do CMD.
+echo.
+echo Diretorio a ser adicionado:
+echo    %DIST_DIR%
 echo.
 
-set /p "CONFIRMA=%BOLD%Deseja continuar? (S/N): %RESET%"
+set /p "CONFIRMA=Deseja continuar? (S/N): "
 if /i not "%CONFIRMA%"=="S" goto MENU_PRINCIPAL
 
-:: Verifica se está executando como administrador
-net session >nul 2>&1
-if errorlevel 1 (
+:: Verifica se o executavel existe
+if not exist "%DIST_DIR%\GameTranslator.exe" (
     echo.
-    echo %YELLOW%⚠️  Solicitando privilégios de administrador...%RESET%
+    echo [ERRO] Executavel nao encontrado!
+    echo Execute a opcao [4] primeiro para criar o executavel.
     echo.
-    
-    :: Cria script temporário para executar como admin
-    echo @echo off > "%TEMP%\add_path.bat"
-    echo setx PATH "%%PATH%%;%DIST_DIR%" /M >> "%TEMP%\add_path.bat"
-    echo echo. >> "%TEMP%\add_path.bat"
-    echo echo PATH atualizado com sucesso! >> "%TEMP%\add_path.bat"
-    echo pause >> "%TEMP%\add_path.bat"
-    
-    powershell -Command "Start-Process '%TEMP%\add_path.bat' -Verb RunAs"
-) else (
-    setx PATH "%PATH%;%DIST_DIR%" /M
-    echo.
-    echo %GREEN%✅ PATH atualizado com sucesso!%RESET%
+    pause
+    goto MENU_PRINCIPAL
 )
 
+:: Cria script temporario para executar como admin
+echo @echo off > "%TEMP%\add_path.bat"
+echo setx PATH "%%PATH%%;%DIST_DIR%" /M >> "%TEMP%\add_path.bat"
+echo echo. >> "%TEMP%\add_path.bat"
+echo echo PATH atualizado com sucesso! >> "%TEMP%\add_path.bat"
+echo pause >> "%TEMP%\add_path.bat"
+
 echo.
-echo %CYAN%Após reiniciar o terminal, você poderá executar:%RESET%
-echo %WHITE%   GameTranslator%RESET%
+echo [INFO] Solicitando privilegios de administrador...
+powershell -Command "Start-Process '%TEMP%\add_path.bat' -Verb RunAs"
+
+echo.
+echo Apos reiniciar o terminal, voce podera executar:
+echo    GameTranslator
 echo.
 pause
 goto MENU_PRINCIPAL
 
 :: ============================================================================
-:: FINALIZAR INSTALAÇÃO
+:: FINALIZAR INSTALACAO
 :: ============================================================================
 :FINALIZAR_INSTALACAO
-:: Cria atalho na área de trabalho
-echo %CYAN%   📌 Criando atalho na área de trabalho...%RESET%
+:: Cria atalho na area de trabalho
+echo [INFO] Criando atalho na area de trabalho...
 
 set "DESKTOP=%USERPROFILE%\Desktop"
 set "SHORTCUT=%DESKTOP%\Game Translator.lnk"
 
 :: Usa PowerShell para criar atalho
-powershell -Command "$WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%SHORTCUT%'); $Shortcut.TargetPath = '%DIST_DIR%\GameTranslator.exe'; $Shortcut.WorkingDirectory = '%DIST_DIR%'; $Shortcut.Description = 'Game Translator - Sistema de Tradução para Jogos'; $Shortcut.Save()" >nul 2>&1
+powershell -Command "$WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%SHORTCUT%'); $Shortcut.TargetPath = '%DIST_DIR%\GameTranslator.exe'; $Shortcut.WorkingDirectory = '%DIST_DIR%'; $Shortcut.Description = 'Game Translator - Sistema de Traducao para Jogos'; $Shortcut.Save()" >nul 2>&1
 
 if exist "%SHORTCUT%" (
-    echo %GREEN%   ✅ Atalho criado na área de trabalho!%RESET%
+    echo [OK] Atalho criado na area de trabalho!
 ) else (
-    echo %YELLOW%   ⚠️  Não foi possível criar atalho automaticamente%RESET%
+    echo [AVISO] Nao foi possivel criar atalho automaticamente
 )
 
 exit /b 0
 
 :: ============================================================================
-:: FUNÇÕES AUXILIARES
+:: FUNCOES AUXILIARES
 :: ============================================================================
-
-:MOSTRAR_CABECALHO
-echo.
-echo %CYAN%╔══════════════════════════════════════════════════════════════════════════════╗%RESET%
-echo %CYAN%║%RESET%  %BOLD%%MAGENTA%🎮 GAME TRANSLATOR%RESET% - %~1
-echo %CYAN%╚══════════════════════════════════════════════════════════════════════════════╝%RESET%
-exit /b 0
 
 :VERIFICAR_PYTHON
 python --version >nul 2>&1
 if errorlevel 1 (
     echo.
-    echo %RED%╔══════════════════════════════════════════════════════════════════════════════╗%RESET%
-    echo %RED%║%RESET%  %BOLD%%RED%❌ PYTHON NÃO ENCONTRADO!%RESET%                                                %RED%║%RESET%
-    echo %RED%╠══════════════════════════════════════════════════════════════════════════════╣%RESET%
-    echo %RED%║%RESET%                                                                              %RED%║%RESET%
-    echo %RED%║%RESET%  O Python é necessário para executar este programa.                         %RED%║%RESET%
-    echo %RED%║%RESET%                                                                              %RED%║%RESET%
-    echo %RED%║%RESET%  %CYAN%Para instalar o Python:%RESET%                                                   %RED%║%RESET%
-    echo %RED%║%RESET%  1. Acesse: %YELLOW%https://www.python.org/downloads/%RESET%                             %RED%║%RESET%
-    echo %RED%║%RESET%  2. Baixe a versão mais recente (3.8 ou superior)                           %RED%║%RESET%
-    echo %RED%║%RESET%  3. Durante a instalação, marque %GREEN%"Add Python to PATH"%RESET%                      %RED%║%RESET%
-    echo %RED%║%RESET%  4. Reinicie este instalador                                                %RED%║%RESET%
-    echo %RED%║%RESET%                                                                              %RED%║%RESET%
-    echo %RED%╚══════════════════════════════════════════════════════════════════════════════╝%RESET%
+    echo ========================================================================
+    echo  [ERRO] PYTHON NAO ENCONTRADO!
+    echo ========================================================================
     echo.
-    set /p "ABRIR_SITE=%BOLD%Deseja abrir o site de download do Python? (S/N): %RESET%"
+    echo  O Python e necessario para executar este programa.
+    echo.
+    echo  Para instalar o Python:
+    echo  1. Acesse: https://www.python.org/downloads/
+    echo  2. Baixe a versao mais recente (3.8 ou superior)
+    echo  3. Durante a instalacao, marque "Add Python to PATH"
+    echo  4. Reinicie este instalador
+    echo.
+    echo ========================================================================
+    echo.
+    set /p "ABRIR_SITE=Deseja abrir o site de download do Python? (S/N): "
     if /i "!ABRIR_SITE!"=="S" (
         start https://www.python.org/downloads/
     )
@@ -503,25 +550,19 @@ if errorlevel 1 (
 )
 
 for /f "tokens=2" %%v in ('python --version 2^>nul') do set "PYTHON_VERSION=%%v"
-echo %GREEN%   ✅ Python encontrado: %PYTHON_VERSION%%RESET%
-exit /b 0
-
-:VERIFICAR_PYTHON_SILENCIOSO
-python --version >nul 2>&1
-if errorlevel 1 exit /b 1
-for /f "tokens=2" %%v in ('python --version 2^>nul') do set "PYTHON_VERSION=%%v"
+echo [OK] Python encontrado: %PYTHON_VERSION%
 exit /b 0
 
 :SAIR
 cls
 echo.
-echo %CYAN%╔══════════════════════════════════════════════════════════════════════════════╗%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%║%RESET%   %GREEN%Obrigado por usar o Game Translator!%RESET%                                      %CYAN%║%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%║%RESET%   %WHITE%Desenvolvido por Manus AI%RESET%                                                 %CYAN%║%RESET%
-echo %CYAN%║%RESET%                                                                              %CYAN%║%RESET%
-echo %CYAN%╚══════════════════════════════════════════════════════════════════════════════╝%RESET%
+echo ========================================================================
+echo.
+echo   Obrigado por usar o Game Translator!
+echo.
+echo   Desenvolvido por Manus AI
+echo.
+echo ========================================================================
 echo.
 timeout /t 2 >nul
 exit /b 0

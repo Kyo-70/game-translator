@@ -1,50 +1,66 @@
 @echo off
-chcp 65001 >nul 2>&1
 setlocal EnableDelayedExpansion
 
-:: Cores
-set "GREEN=[92m"
-set "YELLOW=[93m"
-set "CYAN=[96m"
-set "RED=[91m"
-set "RESET=[0m"
+:: ============================================================================
+:: GAME TRANSLATOR - EXECUCAO RAPIDA
+:: Versao: 1.0.2 - Compativel com Windows 11
+:: ============================================================================
 
+chcp 65001 >nul 2>&1
 title Game Translator
 
-:: Verifica se o executável existe
+:: Variaveis
 set "SCRIPT_DIR=%~dp0"
 set "EXE_PATH=%SCRIPT_DIR%dist\GameTranslator.exe"
 
+:: Verifica se o executavel existe
 if exist "%EXE_PATH%" (
     echo.
-    echo %CYAN%🎮 Iniciando Game Translator...%RESET%
+    echo [INFO] Iniciando Game Translator...
     start "" "%EXE_PATH%"
     exit /b 0
 )
 
-:: Se não existe executável, tenta executar via Python
+:: Se nao existe executavel, tenta executar via Python
 echo.
-echo %YELLOW%⚠️  Executável não encontrado. Tentando modo desenvolvimento...%RESET%
+echo [AVISO] Executavel nao encontrado. Tentando modo desenvolvimento...
 echo.
 
+:: Verifica Python
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo %RED%❌ Python não encontrado!%RESET%
+    echo [ERRO] Python nao encontrado!
     echo.
-    echo %CYAN%Execute o arquivo INSTALAR.bat para configurar o programa.%RESET%
+    echo Execute o arquivo INSTALAR.bat para configurar o programa.
     echo.
     pause
     exit /b 1
 )
 
-:: Verifica dependências
+:: Verifica e instala dependencias
+echo [INFO] Verificando dependencias...
+
 python -c "import PySide6" >nul 2>&1
 if errorlevel 1 (
-    echo %YELLOW%📦 Instalando dependências necessárias...%RESET%
-    pip install PySide6 requests psutil >nul 2>&1
+    echo [INFO] Instalando PySide6...
+    pip install PySide6 >nul 2>&1
 )
 
-echo %GREEN%▶️  Iniciando Game Translator...%RESET%
+python -c "import requests" >nul 2>&1
+if errorlevel 1 (
+    echo [INFO] Instalando requests...
+    pip install requests >nul 2>&1
+)
+
+python -c "import psutil" >nul 2>&1
+if errorlevel 1 (
+    echo [INFO] Instalando psutil...
+    pip install psutil >nul 2>&1
+)
+
+echo [OK] Dependencias verificadas!
+echo.
+echo [INFO] Iniciando Game Translator...
 echo.
 
 cd /d "%SCRIPT_DIR%src"
