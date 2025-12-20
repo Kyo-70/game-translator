@@ -363,8 +363,32 @@ class TranslationMemory:
             print(f"Erro ao deletar tradução: {e}")
             return False
     
-    def get_categories(self) -> List[str]:
+    def delete_translations_by_ids(self, ids: List[int]) -> int:
         """
+        Deleta múltiplas traduções com base em uma lista de IDs.
+        
+        Args:
+            ids: Lista de IDs das traduções a serem deletadas.
+            
+        Returns:
+            O número de linhas deletadas.
+        """
+        if not self.is_connected() or not ids:
+            return 0
+        
+        try:
+            # Cria uma string de placeholders (?, ?, ...) para a cláusula IN
+            placeholders = ', '.join('?' for _ in ids)
+            query = f'DELETE FROM translations WHERE id IN ({placeholders})'
+            
+            self.cursor.execute(query, ids)
+            self.conn.commit()
+            return self.cursor.rowcount
+        except Exception as e:
+            print(f"Erro ao deletar múltiplas traduções: {e}")
+            return 0
+    
+    def get_categories(self, ) -> List[str]:       """
         Retorna lista de categorias únicas
         
         Returns:

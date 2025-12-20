@@ -600,26 +600,41 @@ class DatabaseViewerDialog(QDialog):
             self._load_data()
     
     def _delete_selected(self):
-        """Exclui tradução selecionada"""
-        selected = self.table.selectedItems()
-        if not selected:
-            QMessageBox.warning(self, "Aviso", "Selecione uma tradução para excluir")
+        """Exclui tradução(ões) selecionada(s)"""
+        selected_rows = self.table.selectionModel().selectedRows()
+        if not selected_rows:
+            QMessageBox.warning(self, "Aviso", "Selecione uma ou mais traduções para excluir")
             return
+        
+        # Obtém os IDs das linhas selecionadas
+        selected_ids = []
+        for index in selected_rows:
+            # O ID está na primeira coluna (índice 0)
+            item = self.table.item(index.row(), 0)
+            if item:
+                selected_ids.append(int(item.text()))
+        
+        if not selected_ids:
+            QMessageBox.warning(self, "Aviso", "Nenhum ID de tradução válido encontrado nas linhas selecionadas.")
+            return
+        
+        count = len(selected_ids)
         
         reply = QMessageBox.question(
             self,
             "Confirmar Exclusão",
-            "Tem certeza que deseja excluir a tradução selecionada?",
+            f"Tem certeza que deseja excluir {count} tradução(ões) selecionada(s)?",
             QMessageBox.Yes | QMessageBox.No
         )
         
         if reply == QMessageBox.Yes:
-            row = selected[0].row()
-            translation_id = int(self.table.item(row, 0).text())
+            deleted_count = self.translation_memory.delete_translations_by_ids(selected_ids)
             
-            if self.translation_memory.delete_translation(translation_id):
+            if deleted_count > 0:
                 self._load_data()
-                QMessageBox.information(self, "Sucesso", "Tradução excluída!")
+                QMessageBox.information(self, "Sucesso", f"{deleted_count} tradução(ões) excluída(s)!")
+            else:
+                QMessageBox.critical(self, "Erro", "Falha ao excluir as traduções.")
     
     def _export_csv(self):
         """Exporta para CSV"""
