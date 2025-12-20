@@ -1,8 +1,8 @@
 {
   "name": "Terminator Dark Fate",
-  "description": "",
+  "description": "Extrai texto de células XML do Terminator Dark Fate, preservando estrutura",
   "capture_patterns": [
-    "<Data ss:Type=\"String\">(?!#)(?![^<]*_)([^<]+)</Data>"
+    "(?<=<Data ss:Type=\"String\">)((?!#)(?![^<]*_)[^<]+)(?=</Data>)"
   ],
   "exclude_patterns": [],
   "file_type": "xml"
