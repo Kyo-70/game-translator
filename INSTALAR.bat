@@ -5,8 +5,8 @@ title Game Translator - Instalador v1.0.8
 :: Habilita suporte a cores ANSI no Windows 10+ via registro
 reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
 
-:: Define cores customizadas usando códigos ANSI diretos (mais robusto que o for /F)
-set "ESC="
+:: Define cores customizadas usando ANSI escape codes
+for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do set "ESC=%%b"
 set "COLOR_RESET=%ESC%[0m"
 set "COLOR_TITULO=%ESC%[95m%ESC%[1m"
 set "COLOR_SUCESSO=%ESC%[92m%ESC%[1m"
@@ -63,7 +63,7 @@ echo.
 echo %COLOR_INFO%[1/4] Verificando Python...%COLOR_RESET%
 echo.
 
-py --version >nul 2>&1
+where py >nul 2>&1
 if errorlevel 1 (
     echo %COLOR_ERRO%[ERRO] Python nao encontrado!%COLOR_RESET%
     echo.
@@ -74,7 +74,7 @@ if errorlevel 1 (
     goto MENU
 )
 
-for /f "tokens=*" %%i in ('py --version') do echo %COLOR_SUCESSO%[OK] %%i encontrado%COLOR_RESET%
+for /f "tokens=*" %%i in ('py --version 2^>nul') do echo %COLOR_SUCESSO%[OK] %%i encontrado%COLOR_RESET%
 
 echo.
 echo %COLOR_INFO%[2/4] Instalando dependencias...%COLOR_RESET%
@@ -146,7 +146,7 @@ echo %COLOR_SECAO%==============================================================
 echo.
 
 :: Verifica se Python esta disponivel primeiro
-py --version >nul 2>&1
+where py >nul 2>&1
 if errorlevel 1 (
     echo %COLOR_ERRO%[ERRO] Python nao encontrado!%COLOR_RESET%
     echo.
@@ -176,7 +176,7 @@ echo %COLOR_SECAO%==============================================================
 echo.
 
 echo %COLOR_INFO%Verificando Python...%COLOR_RESET%
-py --version >nul 2>&1
+where py >nul 2>&1
 if errorlevel 1 (
     echo %COLOR_ERRO%[ERRO] Python nao encontrado!%COLOR_RESET%
     echo %COLOR_INFO%Instale Python de: https://www.python.org/downloads/%COLOR_RESET%
@@ -217,7 +217,7 @@ echo %COLOR_SECAO%==============================================================
 echo.
 
 echo %COLOR_INFO%Verificando Python...%COLOR_RESET%
-py --version >nul 2>&1
+where py >nul 2>&1
 if errorlevel 1 (
     echo %COLOR_ERRO%[ERRO] Python nao encontrado!%COLOR_RESET%
     pause
@@ -270,7 +270,7 @@ echo %COLOR_SECAO%==============================================================
 echo.
 
 echo %COLOR_INFO%Verificando Python...%COLOR_RESET%
-py --version >nul 2>&1
+where py >nul 2>&1
 if errorlevel 1 (
     echo %COLOR_ERRO%[ERRO] Python nao encontrado!%COLOR_RESET%
     pause
