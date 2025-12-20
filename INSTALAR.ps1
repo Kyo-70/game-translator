@@ -1,7 +1,7 @@
-# Game Translator - Instalador v1.0.8
+# Game Translator - Instalador v1.0.9
 # Requer PowerShell 5.1 ou superior
 
-$Host.UI.RawUI.WindowTitle = "Game Translator - Instalador v1.0.8"
+$Host.UI.RawUI.WindowTitle = "Game Translator - Instalador v1.0.9"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 # Cores personalizadas
@@ -20,7 +20,7 @@ function Show-Menu {
     Write-Host ""
     Write-Host "========================================================================" -ForegroundColor $ColorTitulo
     Write-Host "                                                                        " -ForegroundColor $ColorTitulo
-    Write-Host "     GAME TRANSLATOR - INSTALADOR v1.0.8                               " -ForegroundColor $ColorTitulo
+    Write-Host "     GAME TRANSLATOR - INSTALADOR v1.0.9                               " -ForegroundColor $ColorTitulo
     Write-Host "                                                                        " -ForegroundColor $ColorTitulo
     Write-Host "     Sistema Profissional de Traducao para Jogos e Mods                " -ForegroundColor $ColorTitulo
     Write-Host "                                                                        " -ForegroundColor $ColorTitulo
@@ -39,6 +39,8 @@ function Show-Menu {
     Write-Host "Executar Programa (modo desenvolvedor)"
     Write-Host "  [6] " -ForegroundColor $ColorInfo -NoNewline
     Write-Host "Limpar Arquivos Temporarios"
+    Write-Host "  [7] " -ForegroundColor $ColorInfo -NoNewline
+    Write-Host "Limpar Tela do Terminal"
     Write-Host "  [0] " -ForegroundColor $ColorInfo -NoNewline
     Write-Host "Sair"
     Write-Host ""
@@ -500,6 +502,7 @@ do {
         "4" { Build-Executable }
         "5" { Start-Program }
         "6" { Show-CleanMenu }
+        "7" { Clear-Host }
         "0" { 
             Write-Host ""
             Write-Host "Obrigado por usar o Game Translator!" -ForegroundColor $ColorDestaque
