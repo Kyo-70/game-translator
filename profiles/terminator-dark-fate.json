@@ -1,0 +1,9 @@
+{
+  "name": "Terminator Dark Fate",
+  "description": "",
+  "capture_patterns": [
+    "<Data ss:Type=\"String\">(?!#)(?![^<]*_)([^<]+)</Data>"
+  ],
+  "exclude_patterns": [],
+  "file_type": "xml"
+}
