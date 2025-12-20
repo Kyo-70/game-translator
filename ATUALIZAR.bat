@@ -1,41 +1,21 @@
 @echo off
 chcp 65001 >nul 2>&1
-title Game Translator - Atualizador v1.0.1
-
-:: Habilita suporte a cores ANSI no Windows 10+ via registro
-reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
-
-:: Define cores customizadas usando ANSI escape codes
-for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do set "ESC=%%b"
-set "COLOR_RESET=%ESC%[0m"
-set "COLOR_TITULO=%ESC%[95m%ESC%[1m"
-set "COLOR_SUCESSO=%ESC%[92m%ESC%[1m"
-set "COLOR_ERRO=%ESC%[91m%ESC%[1m"
-set "COLOR_AVISO=%ESC%[93m%ESC%[1m"
-set "COLOR_INFO=%ESC%[96m%ESC%[1m"
-set "COLOR_DESTAQUE=%ESC%[97m%ESC%[1m"
-set "COLOR_SECAO=%ESC%[94m%ESC%[1m"
-
-cls
-echo.
-echo %COLOR_TITULO%========================================================================%COLOR_RESET%
-echo %COLOR_TITULO%                                                                        %COLOR_RESET%
-echo %COLOR_TITULO%     GAME TRANSLATOR - ATUALIZADOR v1.0.1                              %COLOR_RESET%
-echo %COLOR_TITULO%                                                                        %COLOR_RESET%
-echo %COLOR_TITULO%     Sistema de Atualizacao Automatica do Repositorio                  %COLOR_RESET%
-echo %COLOR_TITULO%                                                                        %COLOR_RESET%
-echo %COLOR_TITULO%========================================================================%COLOR_RESET%
-echo.
+title Game Translator - Atualizador Simples
 
 :MENU
+cls
+echo ========================================================================
+echo                  GAME TRANSLATOR - ATUALIZADOR SIMPLES
+echo ========================================================================
 echo.
-echo %COLOR_INFO%  [1]%COLOR_RESET% %COLOR_DESTAQUE%Atualizar Repositorio Completo%COLOR_RESET% (Recomendado)
-echo %COLOR_INFO%  [2]%COLOR_RESET% Verificar Atualizacoes Disponiveis
-echo %COLOR_INFO%  [3]%COLOR_RESET% Atualizar Apenas Dependencias Python
-echo %COLOR_INFO%  [4]%COLOR_RESET% Recriar Executavel (.exe)
-echo %COLOR_INFO%  [0]%COLOR_RESET% Sair
+echo   [1] Atualizar Repositorio Completo (Recomendado)
+echo   [2] Verificar Atualizacoes Disponiveis
+echo   [3] Atualizar Apenas Dependencias Python
+echo   [4] Recriar Executavel (.exe)
+echo   [0] Sair
 echo.
-set /p OPCAO="%COLOR_INFO%Digite sua opcao:%COLOR_RESET% "
+set /p OPCAO="Digite sua opcao: "
+echo.
 
 if "%OPCAO%"=="1" goto ATUALIZAR_COMPLETO
 if "%OPCAO%"=="2" goto VERIFICAR_UPDATES
@@ -43,31 +23,24 @@ if "%OPCAO%"=="3" goto ATUALIZAR_DEPS
 if "%OPCAO%"=="4" goto CRIAR_EXE
 if "%OPCAO%"=="0" goto SAIR
 
-echo.
-echo %COLOR_ERRO%[ERRO]%COLOR_RESET% Opcao invalida! Tente novamente.
-echo.
+echo ERRO: Opcao invalida! Tente novamente.
 pause
-cls
 goto MENU
 
 :VERIFICAR_GIT
 :: Função para verificar se o Git está instalado e se é um repositório
 git --version >nul 2>&1
 if errorlevel 1 (
-    echo %COLOR_ERRO%[ERRO]%COLOR_RESET% Git nao encontrado!
-    echo.
-    echo %COLOR_INFO%Instale o Git em:%COLOR_RESET% https://git-scm.com/download/win
-    echo.
+    echo ERRO: Git nao encontrado!
+    echo Instale o Git em: https://git-scm.com/download/win
     pause
     exit /b 1
 )
 
 if not exist ".git" (
-    echo %COLOR_ERRO%[ERRO]%COLOR_RESET% Este diretorio nao e um repositorio Git!
-    echo.
-    echo %COLOR_INFO%Para obter atualizacoes, baixe manualmente de:%COLOR_RESET%
-    echo %COLOR_DESTAQUE%https://github.com/Kyo-70/Tradutor_XML-JSON%COLOR_RESET%
-    echo.
+    echo ERRO: Este diretorio nao e um repositorio Git!
+    echo Para obter atualizacoes, baixe manualmente de:
+    echo https://github.com/Kyo-70/Tradutor_XML-JSON
     pause
     exit /b 1
 )
@@ -75,210 +48,188 @@ exit /b 0
 
 :VERIFICAR_UPDATES
 cls
-echo.
-echo %COLOR_SECAO%========================================================================%COLOR_RESET%
-echo %COLOR_SECAO%  VERIFICANDO ATUALIZACOES DISPONIVEIS%COLOR_RESET%
-echo %COLOR_SECAO%========================================================================%COLOR_RESET%
+echo ========================================================================
+echo                  VERIFICANDO ATUALIZACOES DISPONIVEIS
+echo ========================================================================
 echo.
 
 call :VERIFICAR_GIT
 if errorlevel 1 goto MENU
 
-echo %COLOR_INFO%Buscando atualizacoes do servidor remoto...%COLOR_RESET%
+echo Buscando atualizacoes do servidor remoto...
 echo.
 
 git fetch origin
 if errorlevel 1 (
-    echo.
-    echo %COLOR_ERRO%[ERRO]%COLOR_RESET% Falha ao buscar atualizacoes do servidor remoto
-    echo %COLOR_AVISO%Verifique sua conexao com a internet%COLOR_RESET%
-    echo.
+    echo ERRO: Falha ao buscar atualizacoes do servidor remoto
+    echo Verifique sua conexao com a internet
     pause
-    cls
     goto MENU
 )
 
-echo %COLOR_SUCESSO%[OK]%COLOR_RESET% Informacoes atualizadas do servidor remoto
+echo OK: Informacoes atualizadas do servidor remoto
 echo.
 
 :: Verifica se ha commits novos
 git status -uno | find "Your branch is behind" >nul
 if errorlevel 0 (
-    echo %COLOR_AVISO%========================================================================%COLOR_RESET%
-    echo %COLOR_AVISO%  [!] ATUALIZACAO DISPONIVEL!%COLOR_RESET%
-    echo %COLOR_AVISO%========================================================================%COLOR_RESET%
-    echo.
-    echo %COLOR_INFO%Use a opcao [1] para atualizar o repositorio completo.%COLOR_RESET%
+    echo ATUALIZACAO DISPONIVEL!
+    echo Use a opcao [1] para atualizar o repositorio completo.
 ) else (
-    echo %COLOR_SUCESSO%========================================================================%COLOR_RESET%
-    echo %COLOR_SUCESSO%  [OK] REPOSITORIO ATUALIZADO!%COLOR_RESET%
-    echo %COLOR_SUCESSO%========================================================================%COLOR_RESET%
-    echo.
-    echo %COLOR_INFO%Voce ja possui a versao mais recente do Game Translator.%COLOR_RESET%
+    echo REPOSITORIO ATUALIZADO!
+    echo Voce ja possui a versao mais recente do Game Translator.
 )
 
 echo.
 pause
-cls
 goto MENU
 
 :ATUALIZAR_COMPLETO
 cls
-echo.
-echo %COLOR_SECAO%========================================================================%COLOR_RESET%
-echo %COLOR_SECAO%  ATUALIZACAO COMPLETA DO REPOSITORIO%COLOR_RESET%
-echo %COLOR_SECAO%========================================================================%COLOR_RESET%
+echo ========================================================================
+echo                  ATUALIZACAO COMPLETA DO REPOSITORIO
+echo ========================================================================
 echo.
 
 call :VERIFICAR_GIT
 if errorlevel 1 goto MENU
 
 :: Passo 1: Verifica alteracoes locais e faz stash se necessario
-echo %COLOR_INFO%[1/3]%COLOR_RESET% Verificando alteracoes locais...
+echo [1/3] Verificando alteracoes locais...
 echo.
 
 git diff --quiet
 if errorlevel 1 (
-    echo %COLOR_AVISO%[AVISO]%COLOR_RESET% Existem alteracoes locais nao commitadas
+    echo AVISO: Existem alteracoes locais nao commitadas
     echo.
-    set /p CONTINUAR="%COLOR_AVISO%Deseja continuar? Alteracoes locais serao salvas temporariamente (S/N):%COLOR_RESET% "
+    set /p CONTINUAR="Deseja continuar? Alteracoes locais serao salvas temporariamente (S/N): "
     if /i not "%CONTINUAR%"=="S" (
-        echo.
-        echo %COLOR_INFO%Atualizacao cancelada.%COLOR_RESET%
-        echo.
+        echo Atualizacao cancelada.
         pause
-        cls
         goto MENU
     )
     echo.
-    echo %COLOR_INFO%Salvando alteracoes locais temporariamente...%COLOR_RESET%
+    echo Salvando alteracoes locais temporariamente...
     git stash push -m "Backup automatico antes da atualizacao"
     echo.
 )
 
 :: Passo 2: Faz o pull
-echo %COLOR_INFO%[2/3]%COLOR_RESET% Aplicando atualizacoes...
+echo [2/3] Aplicando atualizacoes...
 echo.
 
 git pull
 if errorlevel 1 (
-    echo.
-    echo %COLOR_ERRO%[ERRO]%COLOR_RESET% Falha ao aplicar atualizacoes
-    echo %COLOR_AVISO%Pode haver conflitos que precisam ser resolvidos manualmente%COLOR_RESET%
-    echo.
+    echo ERRO: Falha ao aplicar atualizacoes
+    echo Pode haver conflitos que precisam ser resolvidos manualmente
     pause
-    cls
     goto MENU
 )
 
-echo %COLOR_SUCESSO%[OK]%COLOR_RESET% Repositorio atualizado com sucesso!
+echo OK: Repositorio atualizado com sucesso!
 echo.
 
 :: Passo 3: Aplica stash se houver
 git stash pop --quiet 2>nul
 if not errorlevel 1 (
-    echo %COLOR_INFO%[3/3]%COLOR_RESET% Aplicando alteracoes locais salvas...
-    echo %COLOR_AVISO%[AVISO]%COLOR_RESET% Conflitos podem ter ocorrido. Verifique o status do Git.
+    echo [3/3] Aplicando alteracoes locais salvas...
+    echo AVISO: Conflitos podem ter ocorrido. Verifique o status do Git.
     echo.
 )
 
-echo %COLOR_SUCESSO%========================================================================%COLOR_RESET%
-echo %COLOR_SUCESSO%  [OK] ATUALIZACAO CONCLUIDA!%COLOR_RESET%
-echo %COLOR_SUCESSO%========================================================================%COLOR_RESET%
+echo ========================================================================
+echo  ATUALIZACAO CONCLUIDA!
+echo ========================================================================
 echo.
 pause
-cls
 goto MENU
 
 :ATUALIZAR_DEPS
 cls
-echo.
-echo %COLOR_SECAO%========================================================================%COLOR_RESET%
-echo %COLOR_SECAO%  ATUALIZACAO DE DEPENDENCIAS PYTHON%COLOR_RESET%
-echo %COLOR_SECAO%========================================================================%COLOR_RESET%
+echo ========================================================================
+echo                  ATUALIZACAO DE DEPENDENCIAS PYTHON
+echo ========================================================================
 echo.
 
-echo %COLOR_INFO%Verificando Python...%COLOR_RESET%
+echo Verificando Python...
 where py >nul 2>&1
 if errorlevel 1 (
-    echo %COLOR_ERRO%[ERRO] Python nao encontrado!%COLOR_RESET%
-    echo %COLOR_INFO%Instale Python de: https://www.python.org/downloads/%COLOR_RESET%
+    echo ERRO: Python nao encontrado!
+    echo Instale Python de: https://www.python.org/downloads/
     pause
     goto MENU
 )
 
-echo.
-echo %COLOR_INFO%Atualizando dependencias...%COLOR_RESET%
+echo OK: Python encontrado.
 echo.
 
-echo %COLOR_INFO%[1/2] Atualizando pip...%COLOR_RESET%
+echo Atualizando dependencias...
+echo.
+
+echo [1/2] Atualizando pip...
 py -m pip install --upgrade pip
 
 echo.
-echo %COLOR_INFO%[2/2] Instalando/Atualizando dependencias do requirements.txt...%COLOR_RESET%
+echo [2/2] Instalando/Atualizando dependencias do requirements.txt...
 py -m pip install -r requirements.txt --upgrade
 
 echo.
-echo %COLOR_SUCESSO%========================================================================%COLOR_RESET%
-echo %COLOR_SUCESSO%  [OK] Dependencias atualizadas!%COLOR_RESET%
-echo %COLOR_SUCESSO%========================================================================%COLOR_RESET%
+echo ========================================================================
+echo  OK: Dependencias atualizadas!
+echo ========================================================================
 echo.
 pause
-cls
 goto MENU
 
 :CRIAR_EXE
 cls
-echo.
-echo %COLOR_SECAO%========================================================================%COLOR_RESET%
-echo %COLOR_SECAO%  RECRIACAO DO EXECUTAVEL%COLOR_RESET%
-echo %COLOR_SECAO%========================================================================%COLOR_RESET%
+echo ========================================================================
+echo                  RECRIACAO DO EXECUTAVEL
+echo ========================================================================
 echo.
 
-echo %COLOR_INFO%Verificando Python...%COLOR_RESET%
+echo Verificando Python...
 where py >nul 2>&1
 if errorlevel 1 (
-    echo %COLOR_ERRO%[ERRO] Python nao encontrado!%COLOR_RESET%
+    echo ERRO: Python nao encontrado!
     pause
     goto MENU
 )
 
+echo OK: Python encontrado.
 echo.
-echo %COLOR_INFO%Criando executavel (isso pode levar alguns minutos)...%COLOR_RESET%
+
+echo Criando executavel (isso pode levar alguns minutos)...
 echo.
 
 :: Limpa builds anteriores
 if exist "build" rmdir /s /q "build" >nul 2>&1
 if exist "dist" rmdir /s /q "dist" >nul 2>&1
 
-:: Comando PyInstaller completo em uma única linha para evitar problemas com ^
+:: Comando PyInstaller completo em uma única linha
 py -m PyInstaller --name="GameTranslator" --onefile --windowed --noconfirm --clean --paths="%~dp0src" --hidden-import=PySide6.QtCore --hidden-import=PySide6.QtGui --hidden-import=PySide6.QtWidgets --hidden-import=sqlite3 --hidden-import=psutil --add-data "src;src" "%~dp0src\main.py"
 if errorlevel 1 (
-    echo.
-    echo %COLOR_ERRO%[ERRO] Falha ao criar executavel!%COLOR_RESET%
-    echo.
+    echo ERRO: Falha ao criar executavel!
     pause
-    cls
     goto MENU
 )
 
 echo.
 
 if exist "%~dp0dist\GameTranslator.exe" (
-    echo %COLOR_SUCESSO%[OK] Executavel criado com sucesso!%COLOR_RESET%
-    echo %COLOR_INFO%Local: %~dp0dist\GameTranslator.exe%COLOR_RESET%
+    echo OK: Executavel criado com sucesso!
+    echo Local: %~dp0dist\GameTranslator.exe
 ) else (
-    echo %COLOR_ERRO%[ERRO] Falha ao criar executavel!%COLOR_RESET%
+    echo ERRO: Falha ao criar executavel!
 )
 
 echo.
 pause
-cls
 goto MENU
 
 :SAIR
 echo.
-echo %COLOR_DESTAQUE%Obrigado por usar o Game Translator!%COLOR_RESET%
+echo Obrigado por usar o Game Translator!
 echo.
 timeout /t 2 >nul
 exit /b 0
