@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul 2>&1
-title Game Translator - Instalador v1.0.7
+title Game Translator - Instalador v1.0.8
 
 :: Habilita suporte a cores ANSI no Windows 10+ via registro
 reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
@@ -22,7 +22,7 @@ cls
 echo.
 echo %COLOR_TITULO%========================================================================%COLOR_RESET%
 echo %COLOR_TITULO%                                                                        %COLOR_RESET%
-echo %COLOR_TITULO%     GAME TRANSLATOR - INSTALADOR v1.0.7                               %COLOR_RESET%
+echo %COLOR_TITULO%     GAME TRANSLATOR - INSTALADOR v1.0.8                               %COLOR_RESET%
 echo %COLOR_TITULO%                                                                        %COLOR_RESET%
 echo %COLOR_TITULO%     Sistema Profissional de Traducao para Jogos e Mods                %COLOR_RESET%
 echo %COLOR_TITULO%                                                                        %COLOR_RESET%
@@ -109,12 +109,17 @@ echo.
 echo %COLOR_AVISO%   Isso pode levar alguns minutos, aguarde...%COLOR_RESET%
 echo.
 
-cd /d "%~dp0"
-
-if exist "build" rmdir /s /q "build" >nul 2>&1
-if exist "dist" rmdir /s /q "dist" >nul 2>&1
-
-py -m PyInstaller --name="GameTranslator" --onefile --windowed --noconfirm --clean --paths="%~dp0src" --hidden-import=PySide6.QtCore --hidden-import=PySide6.QtGui --hidden-import=PySide6.QtWidgets --hidden-import=sqlite3 --hidden-import=psutil --add-data "src;src" "%~dp0src\main.py"
+:: Chama função de build
+call :BUILD_EXECUTAVEL
+if errorlevel 1 (
+    echo.
+    echo %COLOR_ERRO%[ERRO] Falha ao criar executavel!%COLOR_RESET%
+    echo %COLOR_AVISO%Verifique os erros acima.%COLOR_RESET%
+    echo.
+    pause
+    cls
+    goto MENU
+)
 
 echo.
 echo %COLOR_INFO%[4/4] Verificando resultado...%COLOR_RESET%
@@ -242,12 +247,16 @@ echo.
 echo %COLOR_INFO%Criando executavel (isso pode levar alguns minutos)...%COLOR_RESET%
 echo.
 
-cd /d "%~dp0"
-
-if exist "build" rmdir /s /q "build" >nul 2>&1
-if exist "dist" rmdir /s /q "dist" >nul 2>&1
-
-py -m PyInstaller --name="GameTranslator" --onefile --windowed --noconfirm --clean --paths="%~dp0src" --hidden-import=PySide6.QtCore --hidden-import=PySide6.QtGui --hidden-import=PySide6.QtWidgets --hidden-import=sqlite3 --hidden-import=psutil --add-data "src;src" "%~dp0src\main.py"
+:: Chama função de build
+call :BUILD_EXECUTAVEL
+if errorlevel 1 (
+    echo.
+    echo %COLOR_ERRO%[ERRO] Falha ao criar executavel!%COLOR_RESET%
+    echo.
+    pause
+    cls
+    goto MENU
+)
 
 echo.
 
@@ -294,6 +303,44 @@ echo.
 pause
 cls
 goto MENU
+
+:BUILD_EXECUTAVEL
+:: Função interna para criar o executável
+:: Evita duplicação de código entre INSTALACAO_COMPLETA e CRIAR_EXE
+:: Retorna errorlevel 0 se sucesso, 1 se falha
+
+cd /d "%~dp0"
+
+:: Limpa builds anteriores
+if exist "build" rmdir /s /q "build" >nul 2>&1
+if exist "dist" rmdir /s /q "dist" >nul 2>&1
+
+:: Comando PyInstaller completo
+:: Parâmetros:
+::   --name: Nome do executável
+::   --onefile: Cria um único arquivo .exe
+::   --windowed: Sem console (GUI pura)
+::   --noconfirm: Sobrescreve sem perguntar
+::   --clean: Limpa cache antes de buildar
+::   --paths: Adiciona diretório src ao path
+::   --hidden-import: Imports que PyInstaller não detecta automaticamente
+::   --add-data: Adiciona diretório src ao executável
+py -m PyInstaller ^
+  --name="GameTranslator" ^
+  --onefile ^
+  --windowed ^
+  --noconfirm ^
+  --clean ^
+  --paths="%~dp0src" ^
+  --hidden-import=PySide6.QtCore ^
+  --hidden-import=PySide6.QtGui ^
+  --hidden-import=PySide6.QtWidgets ^
+  --hidden-import=sqlite3 ^
+  --hidden-import=psutil ^
+  --add-data "src;src" ^
+  "%~dp0src\main.py"
+
+exit /b %ERRORLEVEL%
 
 :SAIR
 echo.
