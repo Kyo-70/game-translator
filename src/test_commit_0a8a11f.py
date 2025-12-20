@@ -232,7 +232,7 @@ def test_delete_multiple_lines():
         
         # Verifica se mostra quantidade de linhas a excluir
         # Procura por padrão de f-string ou mensagem específica
-        if 'f"Tem certeza que deseja excluir {count}' in content or '{count}' in content and 'excluir' in content:
+        if 'f"Tem certeza que deseja excluir {count}' in content or ('{count}' in content and 'excluir' in content):
             print("✅ Mensagem com quantidade de linhas a excluir encontrada")
         else:
             print("⚠️ Mensagem com quantidade pode estar faltando")
