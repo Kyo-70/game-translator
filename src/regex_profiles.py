@@ -225,20 +225,6 @@ class RegexProfileManager:
         )
         default_profiles.append(rimworld_profile)
         
-        # Perfil para XML com tags <Data ss:Type="String">
-        xml_data_string_profile = RegexProfile(
-            name="XML Data String",
-            description="Extrai texto dentro de tags <Data ss:Type=\"String\"> (comum em planilhas XML)",
-            capture_patterns=[
-                r'<Data ss:Type="String">(.*?)</Data>',
-            ],
-            exclude_patterns=[
-                r'<!--.*?-->',  # Ignora comentários
-            ],
-            file_type="xml"
-        )
-        default_profiles.append(xml_data_string_profile)
-        
         # MUDANÇA: Salva apenas perfis que ainda não existem
         # Isso preserva customizações do usuário em perfis padrão
         for profile in default_profiles:
