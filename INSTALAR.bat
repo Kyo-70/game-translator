@@ -5,10 +5,8 @@ title Game Translator - Instalador v1.0.8
 :: Habilita suporte a cores ANSI no Windows 10+ via registro
 reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
 
-:: Define cores customizadas usando ANSI escape codes
-for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do set "ESC=%%b"
-
-:: Cores personalizadas
+:: Define cores customizadas usando códigos ANSI diretos (mais robusto que o for /F)
+set "ESC="
 set "COLOR_RESET=%ESC%[0m"
 set "COLOR_TITULO=%ESC%[95m%ESC%[1m"
 set "COLOR_SUCESSO=%ESC%[92m%ESC%[1m"
@@ -85,17 +83,8 @@ echo.
 echo %COLOR_INFO%   Atualizando pip...%COLOR_RESET%
 py -m pip install --upgrade pip --quiet
 
-echo %COLOR_INFO%   Instalando PySide6...%COLOR_RESET%
-py -m pip install PySide6 --quiet
-
-echo %COLOR_INFO%   Instalando requests...%COLOR_RESET%
-py -m pip install requests --quiet
-
-echo %COLOR_INFO%   Instalando psutil...%COLOR_RESET%
-py -m pip install psutil --quiet
-
-echo %COLOR_INFO%   Instalando colorama...%COLOR_RESET%
-py -m pip install colorama --quiet
+echo %COLOR_INFO%   Instalando dependencias do requirements.txt...%COLOR_RESET%
+py -m pip install -r requirements.txt --quiet
 
 echo %COLOR_INFO%   Instalando PyInstaller...%COLOR_RESET%
 py -m pip install pyinstaller --quiet
@@ -109,8 +98,8 @@ echo.
 echo %COLOR_AVISO%   Isso pode levar alguns minutos, aguarde...%COLOR_RESET%
 echo.
 
-:: Chama função de build
-call :BUILD_EXECUTAVEL
+:: Comando PyInstaller completo em uma única linha para evitar problemas com ^
+py -m PyInstaller --name="GameTranslator" --onefile --windowed --noconfirm --clean --paths="%~dp0src" --hidden-import=PySide6.QtCore --hidden-import=PySide6.QtGui --hidden-import=PySide6.QtWidgets --hidden-import=sqlite3 --hidden-import=psutil --add-data "src;src" "%~dp0src\main.py"
 if errorlevel 1 (
     echo.
     echo %COLOR_ERRO%[ERRO] Falha ao criar executavel!%COLOR_RESET%
@@ -199,23 +188,15 @@ echo.
 echo %COLOR_INFO%Instalando dependencias...%COLOR_RESET%
 echo.
 
-echo %COLOR_INFO%[1/5] Atualizando pip...%COLOR_RESET%
+echo %COLOR_INFO%[1/3] Atualizando pip...%COLOR_RESET%
 py -m pip install --upgrade pip
 
 echo.
-echo %COLOR_INFO%[2/5] Instalando PySide6...%COLOR_RESET%
-py -m pip install PySide6
+echo %COLOR_INFO%[2/3] Instalando dependencias do requirements.txt...%COLOR_RESET%
+py -m pip install -r requirements.txt
 
 echo.
-echo %COLOR_INFO%[3/5] Instalando requests...%COLOR_RESET%
-py -m pip install requests
-
-echo.
-echo %COLOR_INFO%[4/5] Instalando psutil e colorama...%COLOR_RESET%
-py -m pip install psutil colorama
-
-echo.
-echo %COLOR_INFO%[5/5] Instalando PyInstaller...%COLOR_RESET%
+echo %COLOR_INFO%[3/3] Instalando PyInstaller...%COLOR_RESET%
 py -m pip install pyinstaller
 
 echo.
@@ -247,8 +228,12 @@ echo.
 echo %COLOR_INFO%Criando executavel (isso pode levar alguns minutos)...%COLOR_RESET%
 echo.
 
-:: Chama função de build
-call :BUILD_EXECUTAVEL
+:: Limpa builds anteriores
+if exist "build" rmdir /s /q "build" >nul 2>&1
+if exist "dist" rmdir /s /q "dist" >nul 2>&1
+
+:: Comando PyInstaller completo em uma única linha para evitar problemas com ^
+py -m PyInstaller --name="GameTranslator" --onefile --windowed --noconfirm --clean --paths="%~dp0src" --hidden-import=PySide6.QtCore --hidden-import=PySide6.QtGui --hidden-import=PySide6.QtWidgets --hidden-import=sqlite3 --hidden-import=psutil --add-data "src;src" "%~dp0src\main.py"
 if errorlevel 1 (
     echo.
     echo %COLOR_ERRO%[ERRO] Falha ao criar executavel!%COLOR_RESET%
@@ -303,44 +288,6 @@ echo.
 pause
 cls
 goto MENU
-
-:BUILD_EXECUTAVEL
-:: Função interna para criar o executável
-:: Evita duplicação de código entre INSTALACAO_COMPLETA e CRIAR_EXE
-:: Retorna errorlevel 0 se sucesso, 1 se falha
-
-cd /d "%~dp0"
-
-:: Limpa builds anteriores
-if exist "build" rmdir /s /q "build" >nul 2>&1
-if exist "dist" rmdir /s /q "dist" >nul 2>&1
-
-:: Comando PyInstaller completo
-:: Parâmetros:
-::   --name: Nome do executável
-::   --onefile: Cria um único arquivo .exe
-::   --windowed: Sem console (GUI pura)
-::   --noconfirm: Sobrescreve sem perguntar
-::   --clean: Limpa cache antes de buildar
-::   --paths: Adiciona diretório src ao path
-::   --hidden-import: Imports que PyInstaller não detecta automaticamente
-::   --add-data: Adiciona diretório src ao executável
-py -m PyInstaller ^
-  --name="GameTranslator" ^
-  --onefile ^
-  --windowed ^
-  --noconfirm ^
-  --clean ^
-  --paths="%~dp0src" ^
-  --hidden-import=PySide6.QtCore ^
-  --hidden-import=PySide6.QtGui ^
-  --hidden-import=PySide6.QtWidgets ^
-  --hidden-import=sqlite3 ^
-  --hidden-import=psutil ^
-  --add-data "src;src" ^
-  "%~dp0src\main.py"
-
-exit /b %ERRORLEVEL%
 
 :SAIR
 echo.
