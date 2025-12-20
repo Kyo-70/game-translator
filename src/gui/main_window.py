@@ -317,6 +317,7 @@ class DatabaseViewerDialog(QDialog):
         self.setGeometry(150, 150, 1000, 600)
         
         self._create_ui()
+        self._restore_column_widths()
         self._load_data()
     
     def _create_ui(self):
@@ -377,8 +378,9 @@ class DatabaseViewerDialog(QDialog):
         self.table.setColumnWidth(1, 350)  # Texto Original
         self.table.setColumnWidth(2, 350)  # Tradução
         
-        # Conecta redimensionamento de coluna para reajustar altura das linhas
+        # Conecta redimensionamento de coluna para reajustar altura das linhas e salvar larguras
         header.sectionResized.connect(self._auto_adjust_row_heights)
+        header.sectionResized.connect(self._on_db_table_column_resized)
         
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -518,6 +520,33 @@ class DatabaseViewerDialog(QDialog):
             
             # Aplica a altura calculada
             self.table.setRowHeight(row, final_height)
+    
+    def _on_db_table_column_resized(self, logicalIndex, oldSize, newSize):
+        """Callback quando coluna da tabela do banco de dados é redimensionada"""
+        # Salva larguras apenas das colunas ajustáveis (1 e 2)
+        if logicalIndex in [1, 2]:
+            try:
+                settings = QSettings(SETTINGS_ORG_NAME, SETTINGS_APP_NAME)
+                settings.setValue(f"db_table_col{logicalIndex}_width", newSize)
+                app_logger.debug(f"Largura da coluna {logicalIndex} do DB viewer salva: {newSize}px")
+            except Exception as e:
+                app_logger.error(f"Erro ao salvar largura da coluna do DB viewer: {e}")
+    
+    def _restore_column_widths(self):
+        """Restaura larguras das colunas do banco de dados"""
+        try:
+            settings = QSettings(SETTINGS_ORG_NAME, SETTINGS_APP_NAME)
+            
+            # Restaura larguras das colunas ajustáveis
+            col1_width = settings.value("db_table_col1_width", 350, type=int)
+            col2_width = settings.value("db_table_col2_width", 350, type=int)
+            
+            self.table.setColumnWidth(1, col1_width)
+            self.table.setColumnWidth(2, col2_width)
+            
+            app_logger.info(f"Larguras de colunas do DB viewer restauradas: Col1={col1_width}, Col2={col2_width}")
+        except Exception as e:
+            app_logger.error(f"Erro ao restaurar larguras de colunas do DB viewer: {e}")
     
     def _edit_selected(self):
         """Edita tradução selecionada"""
@@ -1458,8 +1487,9 @@ class MainWindow(QMainWindow):
         table.setColumnWidth(1, 400)  # Texto Original
         table.setColumnWidth(2, 400)  # Tradução
         
-        # Conecta redimensionamento de coluna para reajustar altura das linhas
+        # Conecta redimensionamento de coluna para reajustar altura das linhas e salvar larguras
         header.sectionResized.connect(lambda: self._auto_adjust_row_heights())
+        header.sectionResized.connect(self._on_main_table_column_resized)
         
         # Conecta evento de edição
         table.itemChanged.connect(self.on_translation_edited)
@@ -2432,17 +2462,33 @@ class MainWindow(QMainWindow):
             "<p>Desenvolvido por <b>Manus AI</b></p>"
         )
     
+    def _on_main_table_column_resized(self, logicalIndex, oldSize, newSize):
+        """Callback quando coluna da tabela principal é redimensionada"""
+        # Salva larguras apenas das colunas ajustáveis (1 e 2)
+        if logicalIndex in [1, 2]:
+            try:
+                settings = QSettings(SETTINGS_ORG_NAME, SETTINGS_APP_NAME)
+                settings.setValue(f"main_table_col{logicalIndex}_width", newSize)
+                app_logger.debug(f"Largura da coluna {logicalIndex} salva: {newSize}px")
+            except Exception as e:
+                app_logger.error(f"Erro ao salvar largura da coluna: {e}")
+    
     def _save_window_settings(self):
-        """Salva a geometria da janela"""
+        """Salva a geometria da janela e larguras de colunas"""
         try:
             settings = QSettings(SETTINGS_ORG_NAME, SETTINGS_APP_NAME)
             settings.setValue("geometry", self.saveGeometry())
-            app_logger.info("Geometria da janela salva")
+            
+            # Salva larguras das colunas da tabela de tradução
+            settings.setValue("main_table_col1_width", self.table.columnWidth(1))
+            settings.setValue("main_table_col2_width", self.table.columnWidth(2))
+            
+            app_logger.info("Geometria da janela e larguras de colunas salvas")
         except Exception as e:
             app_logger.error(f"Erro ao salvar configurações da janela: {e}")
     
     def _restore_window_settings(self):
-        """Restaura a geometria da janela"""
+        """Restaura a geometria da janela e larguras de colunas"""
         try:
             settings = QSettings(SETTINGS_ORG_NAME, SETTINGS_APP_NAME)
             
@@ -2454,6 +2500,15 @@ class MainWindow(QMainWindow):
                     app_logger.info("Geometria da janela restaurada")
                 else:
                     app_logger.warning("Falha ao restaurar geometria da janela - usando geometria padrão")
+            
+            # Restaura larguras das colunas da tabela de tradução
+            col1_width = settings.value("main_table_col1_width", 400, type=int)
+            col2_width = settings.value("main_table_col2_width", 400, type=int)
+            
+            self.table.setColumnWidth(1, col1_width)
+            self.table.setColumnWidth(2, col2_width)
+            
+            app_logger.info(f"Larguras de colunas restauradas: Col1={col1_width}, Col2={col2_width}")
         except Exception as e:
             app_logger.error(f"Erro ao restaurar configurações da janela: {e}")
             # Continua com geometria padrão em caso de erro
