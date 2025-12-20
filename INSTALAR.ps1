@@ -1,50 +1,284 @@
-# Game Translator - Instalador v1.0.9
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                    GAME TRANSLATOR - INSTALADOR v2.0.0                       ║
+# ║                     Visual Moderno com Animações                             ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 # Requer PowerShell 5.1 ou superior
 
-$Host.UI.RawUI.WindowTitle = "Game Translator - Instalador v1.0.9"
+$Host.UI.RawUI.WindowTitle = "🎮 Game Translator - Instalador v2.0.0"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# Cores personalizadas
-$ColorTitulo = "Magenta"
-$ColorSucesso = "Green"
-$ColorErro = "Red"
-$ColorAviso = "Yellow"
-$ColorInfo = "Cyan"
-$ColorDestaque = "White"
-$ColorSecao = "Blue"
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONFIGURAÇÃO DE CORES MODERNAS
+# ═══════════════════════════════════════════════════════════════════════════════
+$script:Colors = @{
+    Primary    = "Cyan"
+    Secondary  = "Magenta"
+    Success    = "Green"
+    Error      = "Red"
+    Warning    = "Yellow"
+    Info       = "White"
+    Accent     = "Blue"
+    Highlight  = "DarkCyan"
+    Dim        = "DarkGray"
+}
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-function Show-Menu {
-    Clear-Host
-    Write-Host ""
-    Write-Host "========================================================================" -ForegroundColor $ColorTitulo
-    Write-Host "                                                                        " -ForegroundColor $ColorTitulo
-    Write-Host "     GAME TRANSLATOR - INSTALADOR v1.0.9                               " -ForegroundColor $ColorTitulo
-    Write-Host "                                                                        " -ForegroundColor $ColorTitulo
-    Write-Host "     Sistema Profissional de Traducao para Jogos e Mods                " -ForegroundColor $ColorTitulo
-    Write-Host "                                                                        " -ForegroundColor $ColorTitulo
-    Write-Host "========================================================================" -ForegroundColor $ColorTitulo
-    Write-Host ""
-    Write-Host "  [1] " -ForegroundColor $ColorInfo -NoNewline
-    Write-Host "Instalacao Completa" -ForegroundColor $ColorDestaque -NoNewline
-    Write-Host " (Recomendado)"
-    Write-Host "  [2] " -ForegroundColor $ColorInfo -NoNewline
-    Write-Host "Verificar Requisitos"
-    Write-Host "  [3] " -ForegroundColor $ColorInfo -NoNewline
-    Write-Host "Instalar Dependencias"
-    Write-Host "  [4] " -ForegroundColor $ColorInfo -NoNewline
-    Write-Host "Criar Executavel (.exe)"
-    Write-Host "  [5] " -ForegroundColor $ColorInfo -NoNewline
-    Write-Host "Executar Programa (modo desenvolvedor)"
-    Write-Host "  [6] " -ForegroundColor $ColorInfo -NoNewline
-    Write-Host "Limpar Arquivos Temporarios"
-    Write-Host "  [7] " -ForegroundColor $ColorInfo -NoNewline
-    Write-Host "Limpar Tela do Terminal"
-    Write-Host "  [0] " -ForegroundColor $ColorInfo -NoNewline
-    Write-Host "Sair"
+# ═══════════════════════════════════════════════════════════════════════════════
+# FUNÇÕES DE ANIMAÇÃO E VISUAL
+# ═══════════════════════════════════════════════════════════════════════════════
+
+function Write-AnimatedText {
+    param(
+        [string]$Text,
+        [string]$Color = "White",
+        [int]$Delay = 5
+    )
+    foreach ($char in $Text.ToCharArray()) {
+        Write-Host $char -NoNewline -ForegroundColor $Color
+        Start-Sleep -Milliseconds $Delay
+    }
     Write-Host ""
 }
+
+function Write-GradientLine {
+    param([string]$Char = "═", [int]$Length = 76)
+    $colors = @("DarkBlue", "Blue", "Cyan", "DarkCyan", "Cyan", "Blue", "DarkBlue")
+    $segmentLength = [math]::Ceiling($Length / $colors.Count)
+    
+    for ($i = 0; $i -lt $colors.Count; $i++) {
+        $remaining = $Length - ($i * $segmentLength)
+        $currentLength = [math]::Min($segmentLength, $remaining)
+        if ($currentLength -gt 0) {
+            Write-Host ($Char * $currentLength) -NoNewline -ForegroundColor $colors[$i]
+        }
+    }
+    Write-Host ""
+}
+
+function Write-CenteredText {
+    param(
+        [string]$Text,
+        [string]$Color = "White",
+        [int]$Width = 76
+    )
+    $padding = [math]::Max(0, ($Width - $Text.Length) / 2)
+    Write-Host (" " * $padding) -NoNewline
+    Write-Host $Text -ForegroundColor $Color
+}
+
+function Show-Spinner {
+    param(
+        [string]$Message,
+        [int]$Duration = 3
+    )
+    $spinChars = @("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
+    $endTime = (Get-Date).AddSeconds($Duration)
+    $i = 0
+    
+    while ((Get-Date) -lt $endTime) {
+        Write-Host "`r  $($spinChars[$i % $spinChars.Count]) $Message" -NoNewline -ForegroundColor $Colors.Primary
+        Start-Sleep -Milliseconds 80
+        $i++
+    }
+    Write-Host "`r  ✓ $Message" -ForegroundColor $Colors.Success
+}
+
+function Show-ProgressAnimation {
+    param(
+        [string]$Task,
+        [int]$Steps = 20
+    )
+    Write-Host ""
+    Write-Host "  $Task" -ForegroundColor $Colors.Info
+    Write-Host "  [" -NoNewline -ForegroundColor $Colors.Dim
+    
+    for ($i = 0; $i -lt $Steps; $i++) {
+        Write-Host "█" -NoNewline -ForegroundColor $Colors.Primary
+        Start-Sleep -Milliseconds 50
+    }
+    
+    Write-Host "] " -NoNewline -ForegroundColor $Colors.Dim
+    Write-Host "100%" -ForegroundColor $Colors.Success
+}
+
+function Show-Logo {
+    Clear-Host
+    Write-Host ""
+    Write-GradientLine "═" 76
+    Write-Host ""
+    
+    $logo = @(
+        "   ██████╗  █████╗ ███╗   ███╗███████╗",
+        "  ██╔════╝ ██╔══██╗████╗ ████║██╔════╝",
+        "  ██║  ███╗███████║██╔████╔██║█████╗  ",
+        "  ██║   ██║██╔══██║██║╚██╔╝██║██╔══╝  ",
+        "  ╚██████╔╝██║  ██║██║ ╚═╝ ██║███████╗",
+        "   ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝",
+        "",
+        "  ████████╗██████╗  █████╗ ███╗   ██╗███████╗██╗      █████╗ ████████╗ ██████╗ ██████╗ ",
+        "  ╚══██╔══╝██╔══██╗██╔══██╗████╗  ██║██╔════╝██║     ██╔══██╗╚══██╔══╝██╔═══██╗██╔══██╗",
+        "     ██║   ██████╔╝███████║██╔██╗ ██║███████╗██║     ███████║   ██║   ██║   ██║██████╔╝",
+        "     ██║   ██╔══██╗██╔══██║██║╚██╗██║╚════██║██║     ██╔══██║   ██║   ██║   ██║██╔══██╗",
+        "     ██║   ██║  ██║██║  ██║██║ ╚████║███████║███████╗██║  ██║   ██║   ╚██████╔╝██║  ██║",
+        "     ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝"
+    )
+    
+    $logoColors = @("Cyan", "Cyan", "DarkCyan", "Blue", "DarkBlue", "DarkBlue", 
+                    "Magenta", "Magenta", "Magenta", "DarkMagenta", "DarkMagenta", "DarkMagenta", "DarkMagenta")
+    
+    for ($i = 0; $i -lt $logo.Count; $i++) {
+        Write-CenteredText $logo[$i] $logoColors[$i] 90
+        Start-Sleep -Milliseconds 30
+    }
+    
+    Write-Host ""
+    Write-CenteredText "═══════════════════════════════════════════════════════════" "DarkGray" 90
+    Write-CenteredText "Sistema Profissional de Tradução para Jogos e Mods" "White" 90
+    Write-CenteredText "Versão 2.0.0 | PowerShell Edition" "DarkGray" 90
+    Write-CenteredText "═══════════════════════════════════════════════════════════" "DarkGray" 90
+    Write-Host ""
+}
+
+function Show-Menu {
+    Show-Logo
+    
+    Write-Host ""
+    Write-Host "  ┌─────────────────────────────────────────────────────────────────────┐" -ForegroundColor $Colors.Accent
+    Write-Host "  │                         " -NoNewline -ForegroundColor $Colors.Accent
+    Write-Host "MENU PRINCIPAL" -NoNewline -ForegroundColor $Colors.Primary
+    Write-Host "                            │" -ForegroundColor $Colors.Accent
+    Write-Host "  ├─────────────────────────────────────────────────────────────────────┤" -ForegroundColor $Colors.Accent
+    Write-Host "  │                                                                     │" -ForegroundColor $Colors.Accent
+    
+    # Opções do menu com ícones
+    $menuItems = @(
+        @{ Key = "1"; Icon = "🚀"; Text = "Instalação Completa"; Extra = "(Recomendado)" },
+        @{ Key = "2"; Icon = "🔍"; Text = "Verificar Requisitos"; Extra = "" },
+        @{ Key = "3"; Icon = "📦"; Text = "Instalar Dependências"; Extra = "" },
+        @{ Key = "4"; Icon = "⚙️"; Text = "Criar Executável (.exe)"; Extra = "" },
+        @{ Key = "5"; Icon = "▶️"; Text = "Executar Programa"; Extra = "(Dev Mode)" },
+        @{ Key = "6"; Icon = "🧹"; Text = "Limpar Arquivos Temporários"; Extra = "" },
+        @{ Key = "7"; Icon = "🖥️"; Text = "Limpar Tela do Terminal"; Extra = "" },
+        @{ Key = "0"; Icon = "🚪"; Text = "Sair"; Extra = "" }
+    )
+    
+    foreach ($item in $menuItems) {
+        Write-Host "  │    [" -NoNewline -ForegroundColor $Colors.Accent
+        Write-Host $item.Key -NoNewline -ForegroundColor $Colors.Primary
+        Write-Host "] " -NoNewline -ForegroundColor $Colors.Accent
+        Write-Host "$($item.Icon) " -NoNewline
+        Write-Host $item.Text -NoNewline -ForegroundColor $Colors.Info
+        if ($item.Extra) {
+            Write-Host " $($item.Extra)" -NoNewline -ForegroundColor $Colors.Dim
+        }
+        $padding = 53 - $item.Text.Length - $item.Extra.Length
+        Write-Host (" " * [math]::Max(1, $padding)) -NoNewline
+        Write-Host "│" -ForegroundColor $Colors.Accent
+    }
+    
+    Write-Host "  │                                                                     │" -ForegroundColor $Colors.Accent
+    Write-Host "  └─────────────────────────────────────────────────────────────────────┘" -ForegroundColor $Colors.Accent
+    Write-Host ""
+}
+
+function Show-SectionHeader {
+    param([string]$Title, [string]$Icon = "⚡")
+    
+    Clear-Host
+    Write-Host ""
+    Write-GradientLine "═" 76
+    Write-Host ""
+    Write-Host "  $Icon " -NoNewline -ForegroundColor $Colors.Primary
+    Write-Host $Title.ToUpper() -ForegroundColor $Colors.Info
+    Write-Host ""
+    Write-GradientLine "─" 76
+    Write-Host ""
+}
+
+function Show-SuccessBox {
+    param([string]$Message, [string]$SubMessage = "")
+    
+    Write-Host ""
+    Write-Host "  ╔═══════════════════════════════════════════════════════════════════╗" -ForegroundColor $Colors.Success
+    Write-Host "  ║                                                                   ║" -ForegroundColor $Colors.Success
+    Write-Host "  ║  ✅ " -NoNewline -ForegroundColor $Colors.Success
+    Write-Host $Message.PadRight(60) -NoNewline -ForegroundColor "White"
+    Write-Host "║" -ForegroundColor $Colors.Success
+    if ($SubMessage) {
+        Write-Host "  ║     " -NoNewline -ForegroundColor $Colors.Success
+        Write-Host $SubMessage.PadRight(60) -NoNewline -ForegroundColor $Colors.Dim
+        Write-Host "║" -ForegroundColor $Colors.Success
+    }
+    Write-Host "  ║                                                                   ║" -ForegroundColor $Colors.Success
+    Write-Host "  ╚═══════════════════════════════════════════════════════════════════╝" -ForegroundColor $Colors.Success
+    Write-Host ""
+}
+
+function Show-ErrorBox {
+    param([string]$Message, [string]$SubMessage = "")
+    
+    Write-Host ""
+    Write-Host "  ╔═══════════════════════════════════════════════════════════════════╗" -ForegroundColor $Colors.Error
+    Write-Host "  ║                                                                   ║" -ForegroundColor $Colors.Error
+    Write-Host "  ║  ❌ " -NoNewline -ForegroundColor $Colors.Error
+    Write-Host $Message.PadRight(60) -NoNewline -ForegroundColor "White"
+    Write-Host "║" -ForegroundColor $Colors.Error
+    if ($SubMessage) {
+        Write-Host "  ║     " -NoNewline -ForegroundColor $Colors.Error
+        Write-Host $SubMessage.PadRight(60) -NoNewline -ForegroundColor $Colors.Dim
+        Write-Host "║" -ForegroundColor $Colors.Error
+    }
+    Write-Host "  ║                                                                   ║" -ForegroundColor $Colors.Error
+    Write-Host "  ╚═══════════════════════════════════════════════════════════════════╝" -ForegroundColor $Colors.Error
+    Write-Host ""
+}
+
+function Show-InfoBox {
+    param([string]$Message)
+    
+    Write-Host ""
+    Write-Host "  ┌───────────────────────────────────────────────────────────────────┐" -ForegroundColor $Colors.Primary
+    Write-Host "  │  💡 " -NoNewline -ForegroundColor $Colors.Primary
+    Write-Host $Message.PadRight(60) -NoNewline -ForegroundColor $Colors.Info
+    Write-Host "│" -ForegroundColor $Colors.Primary
+    Write-Host "  └───────────────────────────────────────────────────────────────────┘" -ForegroundColor $Colors.Primary
+    Write-Host ""
+}
+
+function Write-Step {
+    param(
+        [int]$Current,
+        [int]$Total,
+        [string]$Message
+    )
+    Write-Host ""
+    Write-Host "  [$Current/$Total] " -NoNewline -ForegroundColor $Colors.Primary
+    Write-Host $Message -ForegroundColor $Colors.Info
+}
+
+function Write-SubStep {
+    param([string]$Message, [string]$Status = "...")
+    Write-Host "       → " -NoNewline -ForegroundColor $Colors.Dim
+    Write-Host $Message -NoNewline -ForegroundColor $Colors.Info
+    Write-Host " $Status" -ForegroundColor $Colors.Dim
+}
+
+function Write-SubStepSuccess {
+    param([string]$Message)
+    Write-Host "       ✓ " -NoNewline -ForegroundColor $Colors.Success
+    Write-Host $Message -ForegroundColor $Colors.Info
+}
+
+function Write-SubStepError {
+    param([string]$Message)
+    Write-Host "       ✗ " -NoNewline -ForegroundColor $Colors.Error
+    Write-Host $Message -ForegroundColor $Colors.Info
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FUNÇÕES UTILITÁRIAS
+# ═══════════════════════════════════════════════════════════════════════════════
 
 function Test-Python {
     try {
@@ -57,208 +291,94 @@ function Test-Python {
 }
 
 function Clear-TempFiles {
-    param(
-        [bool]$Silent = $false
-    )
-    
-    if (-not $Silent) {
-        Write-Host ""
-        Write-Host "Limpando arquivos temporarios..." -ForegroundColor $ColorInfo
-        Write-Host ""
-    }
+    param([bool]$Silent = $false)
     
     $totalRemoved = 0
+    $foldersToRemove = @("build", "dist", "__pycache__", "src\__pycache__", "src\gui\__pycache__")
     
-    # Lista de pastas a serem removidas
-    $foldersToRemove = @(
-        "build",
-        "dist",
-        "__pycache__",
-        "src\__pycache__",
-        "src\gui\__pycache__"
-    )
-    
-    # Remove pastas principais
     foreach ($folder in $foldersToRemove) {
         $folderPath = Join-Path $ScriptDir $folder
         if (Test-Path $folderPath) {
             try {
                 Remove-Item -Path $folderPath -Recurse -Force -ErrorAction Stop
-                if (-not $Silent) {
-                    Write-Host "  [OK] Removido: $folder" -ForegroundColor $ColorSucesso
-                }
+                if (-not $Silent) { Write-SubStepSuccess "Removido: $folder" }
                 $totalRemoved++
-            }
-            catch {
-                if (-not $Silent) {
-                    Write-Host "  [ERRO] Falha ao remover: $folder" -ForegroundColor $ColorErro
-                }
+            } catch {
+                if (-not $Silent) { Write-SubStepError "Falha: $folder" }
             }
         }
     }
     
     # Remove arquivos .spec
-    $specFiles = Get-ChildItem -Path $ScriptDir -Filter "*.spec" -ErrorAction SilentlyContinue
-    foreach ($file in $specFiles) {
+    Get-ChildItem -Path $ScriptDir -Filter "*.spec" -ErrorAction SilentlyContinue | ForEach-Object {
         try {
-            Remove-Item -Path $file.FullName -Force
-            if (-not $Silent) {
-                Write-Host "  [OK] Removido: $($file.Name)" -ForegroundColor $ColorSucesso
-            }
+            Remove-Item -Path $_.FullName -Force
+            if (-not $Silent) { Write-SubStepSuccess "Removido: $($_.Name)" }
             $totalRemoved++
-        }
-        catch {
-            if (-not $Silent) {
-                Write-Host "  [ERRO] Falha ao remover: $($file.Name)" -ForegroundColor $ColorErro
-            }
-        }
+        } catch {}
     }
     
-    # Busca e remove __pycache__ em subpastas recursivamente
-    $pycacheFolders = Get-ChildItem -Path $ScriptDir -Directory -Recurse -Filter "__pycache__" -ErrorAction SilentlyContinue
-    foreach ($pycache in $pycacheFolders) {
+    # Remove __pycache__ recursivamente
+    Get-ChildItem -Path $ScriptDir -Directory -Recurse -Filter "__pycache__" -ErrorAction SilentlyContinue | ForEach-Object {
         try {
-            Remove-Item -Path $pycache.FullName -Recurse -Force
-            if (-not $Silent) {
-                Write-Host "  [OK] Removido: $($pycache.FullName.Replace($ScriptDir, '.'))" -ForegroundColor $ColorSucesso
-            }
+            Remove-Item -Path $_.FullName -Recurse -Force
             $totalRemoved++
-        }
-        catch {
-            if (-not $Silent) {
-                Write-Host "  [ERRO] Falha ao remover: $($pycache.FullName)" -ForegroundColor $ColorErro
-            }
-        }
+        } catch {}
     }
     
-    # Remove arquivos .pyc soltos
-    $pycFiles = Get-ChildItem -Path $ScriptDir -Filter "*.pyc" -Recurse -ErrorAction SilentlyContinue
-    foreach ($pyc in $pycFiles) {
+    # Remove .pyc e .pyo
+    Get-ChildItem -Path $ScriptDir -Include "*.pyc", "*.pyo" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
         try {
-            Remove-Item -Path $pyc.FullName -Force
-            if (-not $Silent) {
-                Write-Host "  [OK] Removido: $($pyc.FullName.Replace($ScriptDir, '.'))" -ForegroundColor $ColorSucesso
-            }
+            Remove-Item -Path $_.FullName -Force
             $totalRemoved++
-        }
-        catch {
-            if (-not $Silent) {
-                Write-Host "  [ERRO] Falha ao remover: $($pyc.Name)" -ForegroundColor $ColorErro
-            }
-        }
-    }
-    
-    # Remove arquivos .pyo soltos
-    $pyoFiles = Get-ChildItem -Path $ScriptDir -Filter "*.pyo" -Recurse -ErrorAction SilentlyContinue
-    foreach ($pyo in $pyoFiles) {
-        try {
-            Remove-Item -Path $pyo.FullName -Force
-            if (-not $Silent) {
-                Write-Host "  [OK] Removido: $($pyo.FullName.Replace($ScriptDir, '.'))" -ForegroundColor $ColorSucesso
-            }
-            $totalRemoved++
-        }
-        catch {
-            if (-not $Silent) {
-                Write-Host "  [ERRO] Falha ao remover: $($pyo.Name)" -ForegroundColor $ColorErro
-            }
-        }
-    }
-    
-    if (-not $Silent) {
-        Write-Host ""
-        Write-Host "  Total de itens removidos: $totalRemoved" -ForegroundColor $ColorInfo
+        } catch {}
     }
     
     return $totalRemoved
 }
 
-function Show-CleanMenu {
-    Clear-Host
-    Write-Host ""
-    Write-Host "========================================================================" -ForegroundColor $ColorSecao
-    Write-Host "  LIMPEZA DE ARQUIVOS TEMPORARIOS" -ForegroundColor $ColorSecao
-    Write-Host "========================================================================" -ForegroundColor $ColorSecao
-    Write-Host ""
-    Write-Host "Esta funcao remove os seguintes arquivos/pastas:" -ForegroundColor $ColorInfo
-    Write-Host ""
-    Write-Host "  - build/          (pasta de compilacao do PyInstaller)" -ForegroundColor $ColorDestaque
-    Write-Host "  - dist/           (pasta do executavel gerado)" -ForegroundColor $ColorDestaque
-    Write-Host "  - __pycache__/    (cache do Python em todas as pastas)" -ForegroundColor $ColorDestaque
-    Write-Host "  - *.spec          (arquivos de especificacao do PyInstaller)" -ForegroundColor $ColorDestaque
-    Write-Host "  - *.pyc           (arquivos compilados do Python)" -ForegroundColor $ColorDestaque
-    Write-Host "  - *.pyo           (arquivos otimizados do Python)" -ForegroundColor $ColorDestaque
-    Write-Host ""
-    
-    $response = Read-Host "Deseja continuar com a limpeza? (S/N)"
-    if ($response -eq "S" -or $response -eq "s" -or $response -eq "Y" -or $response -eq "y") {
-        Clear-TempFiles -Silent $false
-        Write-Host ""
-        Write-Host "========================================================================" -ForegroundColor $ColorSucesso
-        Write-Host "  [OK] Limpeza concluida!" -ForegroundColor $ColorSucesso
-        Write-Host "========================================================================" -ForegroundColor $ColorSucesso
-    } else {
-        Write-Host ""
-        Write-Host "Limpeza cancelada." -ForegroundColor $ColorAviso
-    }
-    
-    Write-Host ""
-    Read-Host "Pressione Enter para continuar"
-}
+# ═══════════════════════════════════════════════════════════════════════════════
+# FUNÇÕES PRINCIPAIS DO MENU
+# ═══════════════════════════════════════════════════════════════════════════════
 
 function Install-Complete {
-    Clear-Host
-    Write-Host ""
-    Write-Host "========================================================================" -ForegroundColor $ColorSecao
-    Write-Host "  INSTALACAO COMPLETA" -ForegroundColor $ColorSecao
-    Write-Host "========================================================================" -ForegroundColor $ColorSecao
-    Write-Host ""
+    Show-SectionHeader "Instalação Completa" "🚀"
     
-    Write-Host "[1/5] Verificando Python..." -ForegroundColor $ColorInfo
-    Write-Host ""
+    Write-Step 1 5 "Verificando Python..."
+    Start-Sleep -Milliseconds 500
     
     if (-not (Test-Python)) {
-        Write-Host "[ERRO] Python nao encontrado!" -ForegroundColor $ColorErro
-        Write-Host ""
-        Write-Host "Instale Python de: https://www.python.org/downloads/" -ForegroundColor $ColorInfo
-        Write-Host "Durante a instalacao, marque 'Add Python to PATH'" -ForegroundColor $ColorInfo
-        Write-Host ""
-        Read-Host "Pressione Enter para continuar"
+        Show-ErrorBox "Python não encontrado!" "Instale em: https://www.python.org/downloads/"
+        Show-InfoBox "Durante a instalação, marque 'Add Python to PATH'"
+        Read-Host "  Pressione Enter para continuar"
         return
     }
     
     $pythonVersion = py --version 2>&1
-    Write-Host "[OK] $pythonVersion encontrado" -ForegroundColor $ColorSucesso
+    Write-SubStepSuccess "$pythonVersion encontrado"
     
-    Write-Host ""
-    Write-Host "[2/5] Limpando arquivos temporarios anteriores..." -ForegroundColor $ColorInfo
-    Clear-TempFiles -Silent $true
-    Write-Host "[OK] Arquivos temporarios removidos" -ForegroundColor $ColorSucesso
+    Write-Step 2 5 "Limpando arquivos temporários anteriores..."
+    $removed = Clear-TempFiles -Silent $true
+    Write-SubStepSuccess "Removidos $removed itens temporários"
     
-    Write-Host ""
-    Write-Host "[3/5] Instalando dependencias..." -ForegroundColor $ColorInfo
+    Write-Step 3 5 "Instalando dependências..."
     Write-Host ""
     
-    Write-Host "   Atualizando pip..." -ForegroundColor $ColorInfo
-    py -m pip install --upgrade pip --quiet
+    Write-SubStep "Atualizando pip"
+    py -m pip install --upgrade pip --quiet 2>$null
+    Write-SubStepSuccess "pip atualizado"
     
     $deps = @("PySide6", "requests", "psutil", "colorama", "pyinstaller")
     foreach ($dep in $deps) {
-        Write-Host "   Instalando $dep..." -ForegroundColor $ColorInfo
-        py -m pip install $dep --quiet
+        Write-SubStep "Instalando $dep"
+        py -m pip install $dep --quiet 2>$null
+        Write-SubStepSuccess "$dep instalado"
     }
     
-    Write-Host ""
-    Write-Host "[OK] Dependencias instaladas!" -ForegroundColor $ColorSucesso
-    Write-Host ""
-    
-    Write-Host "[4/5] Criando executavel..." -ForegroundColor $ColorInfo
-    Write-Host ""
-    Write-Host "   Isso pode levar alguns minutos, aguarde..." -ForegroundColor $ColorAviso
-    Write-Host ""
+    Write-Step 4 5 "Criando executável..."
+    Show-InfoBox "Isso pode levar alguns minutos, aguarde..."
     
     Set-Location $ScriptDir
-    
     $srcPath = Join-Path $ScriptDir "src"
     $mainPath = Join-Path $srcPath "main.py"
     
@@ -270,66 +390,40 @@ function Install-Complete {
         --hidden-import=sqlite3 `
         --hidden-import=psutil `
         --add-data "src;src" `
-        "$mainPath"
+        "$mainPath" 2>$null
     
-    Write-Host ""
-    Write-Host "[5/5] Verificando resultado e limpando temporarios..." -ForegroundColor $ColorInfo
-    Write-Host ""
+    Write-Step 5 5 "Verificando resultado e limpando temporários..."
     
     $exePath = Join-Path $ScriptDir "dist\GameTranslator.exe"
     
     if (Test-Path $exePath) {
-        # Limpa arquivos temporarios apos build bem-sucedido (mantem dist/)
+        # Limpa temporários mantendo dist/
         if (Test-Path "build") { Remove-Item -Recurse -Force "build" }
-        $specFiles = Get-ChildItem -Path $ScriptDir -Filter "*.spec" -ErrorAction SilentlyContinue
-        foreach ($file in $specFiles) {
-            Remove-Item -Path $file.FullName -Force -ErrorAction SilentlyContinue
-        }
-        # Limpa __pycache__ recursivamente
-        Get-ChildItem -Path $ScriptDir -Directory -Recurse -Filter "__pycache__" -ErrorAction SilentlyContinue | ForEach-Object {
-            Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
-        }
+        Get-ChildItem -Path $ScriptDir -Filter "*.spec" -ErrorAction SilentlyContinue | Remove-Item -Force
+        Get-ChildItem -Path $ScriptDir -Directory -Recurse -Filter "__pycache__" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
         
-        Write-Host "========================================================================" -ForegroundColor $ColorSucesso
-        Write-Host "                                                                        " -ForegroundColor $ColorSucesso
-        Write-Host "  [OK] INSTALACAO CONCLUIDA COM SUCESSO!                              " -ForegroundColor $ColorSucesso
-        Write-Host "                                                                        " -ForegroundColor $ColorSucesso
-        Write-Host "  Executavel criado em:                                               " -ForegroundColor $ColorSucesso
-        Write-Host "  $exePath" -ForegroundColor $ColorSucesso
-        Write-Host "                                                                        " -ForegroundColor $ColorSucesso
-        Write-Host "  Arquivos temporarios foram limpos automaticamente.                  " -ForegroundColor $ColorSucesso
-        Write-Host "                                                                        " -ForegroundColor $ColorSucesso
-        Write-Host "========================================================================" -ForegroundColor $ColorSucesso
-        Write-Host ""
+        Show-SuccessBox "INSTALAÇÃO CONCLUÍDA COM SUCESSO!" $exePath
         
-        $response = Read-Host "Deseja abrir o programa agora? (S/N)"
-        if ($response -eq "S" -or $response -eq "s" -or $response -eq "Y" -or $response -eq "y") {
+        Write-Host "  Deseja abrir o programa agora? " -NoNewline -ForegroundColor $Colors.Info
+        Write-Host "(S/N) " -NoNewline -ForegroundColor $Colors.Primary
+        $response = Read-Host
+        if ($response -match "^[SsYy]$") {
             Start-Process $exePath
         }
     } else {
-        Write-Host "[ERRO] Falha ao criar executavel!" -ForegroundColor $ColorErro
-        Write-Host "Verifique os erros acima." -ForegroundColor $ColorAviso
+        Show-ErrorBox "Falha ao criar executável!" "Verifique os erros acima."
     }
     
     Write-Host ""
-    Read-Host "Pressione Enter para continuar"
+    Read-Host "  Pressione Enter para continuar"
 }
 
 function Test-Requirements {
-    Clear-Host
-    Write-Host ""
-    Write-Host "========================================================================" -ForegroundColor $ColorSecao
-    Write-Host "  VERIFICACAO DE REQUISITOS" -ForegroundColor $ColorSecao
-    Write-Host "========================================================================" -ForegroundColor $ColorSecao
-    Write-Host ""
+    Show-SectionHeader "Verificação de Requisitos" "🔍"
     
     if (-not (Test-Python)) {
-        Write-Host "[ERRO] Python nao encontrado!" -ForegroundColor $ColorErro
-        Write-Host ""
-        Write-Host "Instale Python de: https://www.python.org/downloads/" -ForegroundColor $ColorInfo
-        Write-Host "Durante a instalacao, marque 'Add Python to PATH'" -ForegroundColor $ColorInfo
-        Write-Host ""
-        Read-Host "Pressione Enter para continuar"
+        Show-ErrorBox "Python não encontrado!" "Instale em: https://www.python.org/downloads/"
+        Read-Host "  Pressione Enter para continuar"
         return
     }
     
@@ -338,84 +432,53 @@ function Test-Requirements {
     Set-Location $ScriptDir
     
     Write-Host ""
-    Read-Host "Pressione Enter para continuar"
+    Read-Host "  Pressione Enter para continuar"
 }
 
 function Install-Dependencies {
-    Clear-Host
-    Write-Host ""
-    Write-Host "========================================================================" -ForegroundColor $ColorSecao
-    Write-Host "  INSTALACAO DE DEPENDENCIAS" -ForegroundColor $ColorSecao
-    Write-Host "========================================================================" -ForegroundColor $ColorSecao
-    Write-Host ""
-    
-    Write-Host "Verificando Python..." -ForegroundColor $ColorInfo
+    Show-SectionHeader "Instalação de Dependências" "📦"
     
     if (-not (Test-Python)) {
-        Write-Host "[ERRO] Python nao encontrado!" -ForegroundColor $ColorErro
-        Write-Host "Instale Python de: https://www.python.org/downloads/" -ForegroundColor $ColorInfo
-        Read-Host "Pressione Enter para continuar"
+        Show-ErrorBox "Python não encontrado!"
+        Read-Host "  Pressione Enter para continuar"
         return
     }
     
-    Write-Host ""
-    Write-Host "Instalando dependencias..." -ForegroundColor $ColorInfo
-    Write-Host ""
+    $steps = @(
+        @{ Name = "pip"; Cmd = "py -m pip install --upgrade pip" },
+        @{ Name = "PySide6"; Cmd = "py -m pip install PySide6" },
+        @{ Name = "requests"; Cmd = "py -m pip install requests" },
+        @{ Name = "psutil e colorama"; Cmd = "py -m pip install psutil colorama" },
+        @{ Name = "PyInstaller"; Cmd = "py -m pip install pyinstaller" }
+    )
     
-    Write-Host "[1/5] Atualizando pip..." -ForegroundColor $ColorInfo
-    py -m pip install --upgrade pip
+    for ($i = 0; $i -lt $steps.Count; $i++) {
+        Write-Step ($i + 1) $steps.Count "Instalando $($steps[$i].Name)..."
+        Invoke-Expression $steps[$i].Cmd 2>$null
+        Write-SubStepSuccess "$($steps[$i].Name) instalado com sucesso"
+    }
     
-    Write-Host ""
-    Write-Host "[2/5] Instalando PySide6..." -ForegroundColor $ColorInfo
-    py -m pip install PySide6
-    
-    Write-Host ""
-    Write-Host "[3/5] Instalando requests..." -ForegroundColor $ColorInfo
-    py -m pip install requests
-    
-    Write-Host ""
-    Write-Host "[4/5] Instalando psutil e colorama..." -ForegroundColor $ColorInfo
-    py -m pip install psutil colorama
-    
-    Write-Host ""
-    Write-Host "[5/5] Instalando PyInstaller..." -ForegroundColor $ColorInfo
-    py -m pip install pyinstaller
-    
-    Write-Host ""
-    Write-Host "========================================================================" -ForegroundColor $ColorSucesso
-    Write-Host "  [OK] Todas as dependencias foram instaladas!" -ForegroundColor $ColorSucesso
-    Write-Host "========================================================================" -ForegroundColor $ColorSucesso
-    Write-Host ""
-    Read-Host "Pressione Enter para continuar"
+    Show-SuccessBox "Todas as dependências foram instaladas!"
+    Read-Host "  Pressione Enter para continuar"
 }
 
 function Build-Executable {
-    Clear-Host
-    Write-Host ""
-    Write-Host "========================================================================" -ForegroundColor $ColorSecao
-    Write-Host "  CRIACAO DO EXECUTAVEL" -ForegroundColor $ColorSecao
-    Write-Host "========================================================================" -ForegroundColor $ColorSecao
-    Write-Host ""
-    
-    Write-Host "Verificando Python..." -ForegroundColor $ColorInfo
+    Show-SectionHeader "Criação do Executável" "⚙️"
     
     if (-not (Test-Python)) {
-        Write-Host "[ERRO] Python nao encontrado!" -ForegroundColor $ColorErro
-        Read-Host "Pressione Enter para continuar"
+        Show-ErrorBox "Python não encontrado!"
+        Read-Host "  Pressione Enter para continuar"
         return
     }
     
-    Write-Host ""
-    Write-Host "Limpando arquivos temporarios anteriores..." -ForegroundColor $ColorInfo
+    Write-Step 1 3 "Limpando arquivos temporários anteriores..."
     Clear-TempFiles -Silent $true
-    Write-Host "[OK] Arquivos temporarios removidos" -ForegroundColor $ColorSucesso
+    Write-SubStepSuccess "Arquivos temporários removidos"
     
-    Write-Host ""
-    Write-Host "Criando executavel (isso pode levar alguns minutos)..." -ForegroundColor $ColorInfo
-    Write-Host ""
+    Write-Step 2 3 "Criando executável..."
+    Show-InfoBox "Isso pode levar alguns minutos..."
     
     Set-Location $ScriptDir
-    
     $srcPath = Join-Path $ScriptDir "src"
     $mainPath = Join-Path $srcPath "main.py"
     
@@ -427,73 +490,113 @@ function Build-Executable {
         --hidden-import=sqlite3 `
         --hidden-import=psutil `
         --add-data "src;src" `
-        "$mainPath"
+        "$mainPath" 2>$null
     
-    Write-Host ""
+    Write-Step 3 3 "Finalizando..."
     
     $exePath = Join-Path $ScriptDir "dist\GameTranslator.exe"
     
     if (Test-Path $exePath) {
-        # Limpa arquivos temporarios apos build bem-sucedido (mantem dist/)
         if (Test-Path "build") { Remove-Item -Recurse -Force "build" }
-        $specFiles = Get-ChildItem -Path $ScriptDir -Filter "*.spec" -ErrorAction SilentlyContinue
-        foreach ($file in $specFiles) {
-            Remove-Item -Path $file.FullName -Force -ErrorAction SilentlyContinue
-        }
-        # Limpa __pycache__ recursivamente
-        Get-ChildItem -Path $ScriptDir -Directory -Recurse -Filter "__pycache__" -ErrorAction SilentlyContinue | ForEach-Object {
-            Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
-        }
+        Get-ChildItem -Path $ScriptDir -Filter "*.spec" -ErrorAction SilentlyContinue | Remove-Item -Force
+        Get-ChildItem -Path $ScriptDir -Directory -Recurse -Filter "__pycache__" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
         
-        Write-Host "[OK] Executavel criado com sucesso!" -ForegroundColor $ColorSucesso
-        Write-Host "Local: $exePath" -ForegroundColor $ColorInfo
-        Write-Host ""
-        Write-Host "[OK] Arquivos temporarios limpos automaticamente." -ForegroundColor $ColorSucesso
-        Write-Host ""
+        Show-SuccessBox "Executável criado com sucesso!" $exePath
         
-        $response = Read-Host "Abrir pasta? (S/N)"
-        if ($response -eq "S" -or $response -eq "s" -or $response -eq "Y" -or $response -eq "y") {
+        Write-Host "  Abrir pasta do executável? " -NoNewline -ForegroundColor $Colors.Info
+        Write-Host "(S/N) " -NoNewline -ForegroundColor $Colors.Primary
+        $response = Read-Host
+        if ($response -match "^[SsYy]$") {
             explorer (Join-Path $ScriptDir "dist")
         }
     } else {
-        Write-Host "[ERRO] Falha ao criar executavel!" -ForegroundColor $ColorErro
+        Show-ErrorBox "Falha ao criar executável!"
     }
     
-    Write-Host ""
-    Read-Host "Pressione Enter para continuar"
+    Read-Host "  Pressione Enter para continuar"
 }
 
 function Start-Program {
-    Clear-Host
-    Write-Host ""
-    Write-Host "========================================================================" -ForegroundColor $ColorSecao
-    Write-Host "  EXECUTAR PROGRAMA" -ForegroundColor $ColorSecao
-    Write-Host "========================================================================" -ForegroundColor $ColorSecao
-    Write-Host ""
-    
-    Write-Host "Verificando Python..." -ForegroundColor $ColorInfo
+    Show-SectionHeader "Executar Programa" "▶️"
     
     if (-not (Test-Python)) {
-        Write-Host "[ERRO] Python nao encontrado!" -ForegroundColor $ColorErro
-        Read-Host "Pressione Enter para continuar"
+        Show-ErrorBox "Python não encontrado!"
+        Read-Host "  Pressione Enter para continuar"
         return
     }
     
-    Write-Host ""
-    Write-Host "Iniciando Game Translator..." -ForegroundColor $ColorInfo
+    Write-Host "  🎮 Iniciando Game Translator..." -ForegroundColor $Colors.Primary
     Write-Host ""
     
     Set-Location (Join-Path $ScriptDir "src")
     py main.py
     
     Write-Host ""
-    Read-Host "Pressione Enter para continuar"
+    Read-Host "  Pressione Enter para continuar"
 }
 
-# Loop principal do menu
+function Show-CleanMenu {
+    Show-SectionHeader "Limpeza de Arquivos Temporários" "🧹"
+    
+    Write-Host "  Esta função remove os seguintes arquivos/pastas:" -ForegroundColor $Colors.Info
+    Write-Host ""
+    Write-Host "    📁 build/          " -NoNewline -ForegroundColor $Colors.Warning
+    Write-Host "(pasta de compilação do PyInstaller)" -ForegroundColor $Colors.Dim
+    Write-Host "    📁 dist/           " -NoNewline -ForegroundColor $Colors.Warning
+    Write-Host "(pasta do executável gerado)" -ForegroundColor $Colors.Dim
+    Write-Host "    📁 __pycache__/    " -NoNewline -ForegroundColor $Colors.Warning
+    Write-Host "(cache do Python)" -ForegroundColor $Colors.Dim
+    Write-Host "    📄 *.spec          " -NoNewline -ForegroundColor $Colors.Warning
+    Write-Host "(arquivos de especificação)" -ForegroundColor $Colors.Dim
+    Write-Host "    📄 *.pyc / *.pyo   " -NoNewline -ForegroundColor $Colors.Warning
+    Write-Host "(arquivos compilados)" -ForegroundColor $Colors.Dim
+    Write-Host ""
+    
+    Write-Host "  Deseja continuar? " -NoNewline -ForegroundColor $Colors.Info
+    Write-Host "(S/N) " -NoNewline -ForegroundColor $Colors.Primary
+    $response = Read-Host
+    
+    if ($response -match "^[SsYy]$") {
+        Write-Host ""
+        $removed = Clear-TempFiles -Silent $false
+        Show-SuccessBox "Limpeza concluída!" "Total de $removed itens removidos"
+    } else {
+        Show-InfoBox "Limpeza cancelada pelo usuário."
+    }
+    
+    Read-Host "  Pressione Enter para continuar"
+}
+
+function Show-ExitAnimation {
+    Clear-Host
+    Write-Host ""
+    Write-Host ""
+    Write-CenteredText "╔═══════════════════════════════════════════════════════════╗" "Cyan" 76
+    Write-CenteredText "║                                                           ║" "Cyan" 76
+    Write-CenteredText "║      Obrigado por usar o Game Translator! 🎮             ║" "Cyan" 76
+    Write-CenteredText "║                                                           ║" "Cyan" 76
+    Write-CenteredText "║              Até a próxima! 👋                            ║" "Cyan" 76
+    Write-CenteredText "║                                                           ║" "Cyan" 76
+    Write-CenteredText "╚═══════════════════════════════════════════════════════════╝" "Cyan" 76
+    Write-Host ""
+    
+    # Animação de saída
+    $dots = @(".", "..", "...", "....", ".....")
+    foreach ($dot in $dots) {
+        Write-Host "`r                    Encerrando$dot" -NoNewline -ForegroundColor $Colors.Dim
+        Start-Sleep -Milliseconds 300
+    }
+    Write-Host ""
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LOOP PRINCIPAL
+# ═══════════════════════════════════════════════════════════════════════════════
+
 do {
     Show-Menu
-    $option = Read-Host "Digite sua opcao"
+    Write-Host "  Digite sua opção: " -NoNewline -ForegroundColor $Colors.Info
+    $option = Read-Host
     
     switch ($option) {
         "1" { Install-Complete }
@@ -504,17 +607,12 @@ do {
         "6" { Show-CleanMenu }
         "7" { Clear-Host }
         "0" { 
-            Write-Host ""
-            Write-Host "Obrigado por usar o Game Translator!" -ForegroundColor $ColorDestaque
-            Write-Host ""
-            Start-Sleep -Seconds 2
+            Show-ExitAnimation
             exit 0
         }
         default {
-            Write-Host ""
-            Write-Host "[ERRO] Opcao invalida! Tente novamente." -ForegroundColor $ColorErro
-            Write-Host ""
-            Read-Host "Pressione Enter para continuar"
+            Show-ErrorBox "Opção inválida!" "Por favor, escolha uma opção de 0 a 7."
+            Start-Sleep -Seconds 2
         }
     }
 } while ($true)
