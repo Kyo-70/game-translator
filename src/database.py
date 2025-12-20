@@ -388,7 +388,8 @@ class TranslationMemory:
             print(f"Erro ao deletar múltiplas traduções: {e}")
             return 0
     
-    def get_categories(self, ) -> List[str]:       """
+    def get_categories(self) -> List[str]:
+        """
         Retorna lista de categorias únicas
         
         Returns:
