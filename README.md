@@ -1,9 +1,5 @@
 # 🌐 Tradutor XML-JSON: A Ferramenta Definitiva para Localização de Jogos
 
-[![GitHub last commit](https://img.shields.io/github/last-commit/Kyo-70/Tradutor_XML-JSON?style=for-the-badge&color=blue)](https://github.com/Kyo-70/Tradutor_XML-JSON/commits/master)
-[![GitHub repo size](https://img.shields.io/github/repo-size/Kyo-70/Tradutor_XML-JSON?style=for-the-badge&color=green)](https://github.com/Kyo-70/Tradutor_XML-JSON/archive/master.zip)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-
 ## ✨ Visão Geral
 
 O **Tradutor XML-JSON** é uma aplicação desktop robusta e eficiente, desenvolvida em Python e PySide6, projetada para simplificar e acelerar o processo de localização de jogos e mods. Ele permite que tradutores e desenvolvedores gerenciem grandes volumes de texto em formatos XML e JSON, utilizando uma poderosa **Memória de Tradução (SQLite)** e integração com **APIs de Tradução** para garantir consistência e velocidade.
