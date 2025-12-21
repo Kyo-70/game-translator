@@ -2,7 +2,7 @@
 
 Sistema profissional de tradução para arquivos JSON e XML de jogos e mods, com preservação total da estrutura original.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.2.1-blue)
 ![Python](https://img.shields.io/badge/python-3.8+-green)
 ![Platform](https://img.shields.io/badge/platform-Windows%2011-blue)
 ![License](https://img.shields.io/badge/license-MIT-orange)
