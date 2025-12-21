@@ -1,6 +1,5 @@
 # 🚀 Tradutor de Arquivos para Jogos
 
-![Licença](https://img.shields.io/github/license/Kyo-70/Tradutor_XML-JSON?style=for-the-badge&color=blue)
 ![Versão](https://img.shields.io/badge/versão-1.2.0-blue?style=for-the-badge)
 ![Python](https://img.shields.io/badge/python-3.8+-green?style=for-the-badge)
 
