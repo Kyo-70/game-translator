@@ -306,10 +306,10 @@ O Game Translator é composto por diversos módulos especializados que trabalham
 #### 🎯 **main.py** - Ponto de Entrada
 Módulo principal do aplicativo que inicializa a interface gráfica.
 
-**Funções principais:**
+**⚙️ Funções principais:**
 - `main()`: Função principal que inicializa o QApplication e a janela principal
 
-**Características:**
+**✨ Características:**
 - Detecta se está rodando como executável PyInstaller ou script Python
 - Configura paths corretos para imports funcionarem em ambos os modos
 - Aplica tema Fusion para interface moderna
@@ -319,15 +319,15 @@ Módulo principal do aplicativo que inicializa a interface gráfica.
 #### 🗄️ **database.py** - Memória de Tradução
 Gerencia a persistência de traduções usando SQLite com suporte a múltiplos bancos de dados.
 
-**Classe principal:** `TranslationMemory`
+**📦 Classe principal:** `TranslationMemory`
 
-**Métodos de conexão:**
+**🔌 Métodos de conexão:**
 - `connect(db_path)`: Conecta a um arquivo de banco de dados
 - `is_connected()`: Verifica se está conectado
 - `get_db_path()`: Retorna o caminho do banco atual
 - `close()`: Fecha a conexão com o banco
 
-**Métodos de tradução:**
+**🌐 Métodos de tradução:**
 - `add_translation(original, translated, source_lang, target_lang, category, notes)`: Adiciona ou atualiza uma tradução
 - `get_translation(original)`: Busca uma tradução específica
 - `get_all_translations(category, search_term, limit, offset)`: Retorna todas as traduções com filtros
@@ -336,7 +336,7 @@ Gerencia a persistência de traduções usando SQLite com suporte a múltiplos b
 - `delete_translation(translation_id)`: Deleta uma tradução
 - `delete_translations_by_ids(ids)`: Deleta múltiplas traduções
 
-**Métodos utilitários:**
+**🛠️ Métodos utilitários:**
 - `get_categories()`: Retorna lista de categorias únicas
 - `search(term)`: Busca traduções por termo
 - `get_stats()`: Retorna estatísticas do banco (total, usos, categorias)
@@ -344,10 +344,10 @@ Gerencia a persistência de traduções usando SQLite com suporte a múltiplos b
 - `import_from_file(filepath)`: Importa de CSV
 - `clear_all()`: Limpa todo o banco
 
-**Função auxiliar:**
+**⚙️ Função auxiliar:**
 - `create_new_database(filepath)`: Cria um novo arquivo de banco de dados
 
-**Estrutura do banco:**
+**🗂️ Estrutura do banco:**
 - Tabela `translations`: Armazena todas as traduções com metadados
 - Tabela `metadata`: Metadados do banco (versão, data de criação)
 - Índices otimizados para busca rápida por texto original e categoria
@@ -357,20 +357,20 @@ Gerencia a persistência de traduções usando SQLite com suporte a múltiplos b
 #### 🧠 **smart_translator.py** - Tradução Inteligente
 Implementa lógica de reaproveitamento automático e reconhecimento de padrões.
 
-**Classe principal:** `SmartTranslator`
+**📦 Classe principal:** `SmartTranslator`
 
-**Métodos de tradução:**
+**🌐 Métodos de tradução:**
 - `translate(text)`: Traduz um texto usando memória e padrões inteligentes
 - `batch_translate(texts)`: Traduz múltiplos textos de uma vez
 - `auto_translate_batch(texts)`: Tradução automática com detecção de padrões
 - `learn_pattern(original, translated)`: Aprende um novo padrão de tradução
 
-**Métodos internos de padrões:**
+**🔍 Métodos internos de padrões:**
 - `_find_numeric_pattern(text)`: Busca padrões numéricos (ex: "Soldier 1" → "Soldado 1")
 - `_find_similar_numeric_patterns(base_text)`: Busca padrões numéricos similares na memória
 - `_find_variation_pattern(text)`: Busca padrões de variação (ex: "Light/Heavy", "Small/Large")
 
-**Padrões suportados:**
+**✨ Padrões suportados:**
 - Numéricos: "Item 1", "Item 2", etc.
 - Variações: Light/Heavy, Small/Large, Minor/Major, Weak/Strong, Basic/Advanced, Old/New, Young/Old, Male/Female, Upper/Lower
 
@@ -379,54 +379,54 @@ Implementa lógica de reaproveitamento automático e reconhecimento de padrões.
 #### 🌐 **translation_api.py** - APIs de Tradução
 Suporte para múltiplas APIs de tradução com otimizações para planos gratuitos.
 
-**Classes de gerenciamento:**
+**📋 Classes de gerenciamento:**
 
-**`APILimits`** - Limites dos planos gratuitos:
+**⚡ `APILimits`** - Limites dos planos gratuitos:
 - DeepL Free: 500.000 caracteres/mês, 5 requisições/segundo
 - Google Cloud Free: 500.000 caracteres/mês, 10 requisições/segundo
 - LibreTranslate: Sem limites (self-hosted)
 - MyMemory Free: 5.000 caracteres/dia
 
-**`TranslationCache`** - Cache em memória:
+**💾 `TranslationCache`** - Cache em memória:
 - `get(text, source_lang, target_lang)`: Busca tradução no cache
 - `set(text, translation, source_lang, target_lang)`: Armazena no cache
 - `clear()`: Limpa o cache
 - Implementa LRU (Least Recently Used) com tamanho máximo de 10.000 entradas
 
-**`UsageTracker`** - Rastreamento de uso:
+**📊 `UsageTracker`** - Rastreamento de uso:
 - `add_usage(api, chars)`: Registra uso de caracteres
 - `get_remaining(api)`: Retorna caracteres restantes
 - `can_use(api, chars)`: Verifica se pode usar a API
 - `get_stats()`: Retorna estatísticas de uso
 - Persiste dados em `api_usage.json`
 
-**`RateLimiter`** - Controle de taxa:
+**⏱️ `RateLimiter`** - Controle de taxa:
 - `wait_if_needed(api)`: Aguarda se necessário para respeitar limites
 
-**Classes de tradutores:**
+**🤖 Classes de tradutores:**
 
-**`DeepLTranslator`** - API DeepL:
+**🔷 `DeepLTranslator`** - API DeepL:
 - `translate(text, source_lang, target_lang)`: Traduz texto individual
 - `translate_batch(texts, source_lang, target_lang)`: Traduz múltiplos textos
 - Detecta automaticamente se é chave gratuita ou paga
 - Suporta idiomas: EN, PT-BR, ES, FR, DE, IT, JA, ZH, KO, RU
 
-**`GoogleTranslator`** - API Google Translate:
+**🔶 `GoogleTranslator`** - API Google Translate:
 - `translate(text, source_lang, target_lang)`: Traduz texto individual
 - `translate_batch(texts, source_lang, target_lang)`: Traduz em lotes (até 100 por vez)
 - Batching nativo para economizar requisições
 
-**`MyMemoryTranslator`** - API MyMemory (gratuita):
+**🔸 `MyMemoryTranslator`** - API MyMemory (gratuita):
 - `translate(text, source_lang, target_lang)`: Traduz usando MyMemory
 - Sem chave: 1000 palavras/dia
 - Com email: 10000 palavras/dia
 
-**`LibreTranslator`** - LibreTranslate (gratuita):
+**🔹 `LibreTranslator`** - LibreTranslate (gratuita):
 - `translate(text, source_lang, target_lang)`: Traduz usando LibreTranslate
 - Suporta múltiplos servidores públicos com fallback automático
 - Sem limites em servidores self-hosted
 
-**`TranslationAPIManager`** - Gerenciador principal:
+**🎛️ `TranslationAPIManager`** - Gerenciador principal:
 - `add_deepl(api_key)`: Adiciona API DeepL
 - `add_google(api_key)`: Adiciona API Google
 - `add_mymemory(email)`: Adiciona API MyMemory
@@ -444,13 +444,13 @@ Suporte para múltiplas APIs de tradução com otimizações para planos gratuit
 #### 🔍 **regex_profiles.py** - Perfis de Regex
 Gerencia perfis personalizados para extração de texto de diferentes formatos.
 
-**Classe principal:** `RegexProfile`
+**📦 Classe principal:** `RegexProfile`
 - `to_dict()`: Converte perfil para dicionário
 - `from_dict(data)`: Cria perfil a partir de dicionário
 
-**Classe gerenciadora:** `RegexProfileManager`
+**🎯 Classe gerenciadora:** `RegexProfileManager`
 
-**Métodos principais:**
+**🔧 Métodos principais:**
 - `save_profile(profile)`: Salva perfil em arquivo JSON
 - `load_profile(filepath)`: Carrega perfil de arquivo JSON
 - `load_all_profiles()`: Carrega todos os perfis do diretório
@@ -460,16 +460,16 @@ Gerencia perfis personalizados para extração de texto de diferentes formatos.
 - `export_profile(name, export_path)`: Exporta perfil para compartilhamento
 - `import_profile(import_path)`: Importa perfil externo
 
-**Função auxiliar:**
+**⚙️ Função auxiliar:**
 - `slugify(text)`: Converte texto em nome de arquivo seguro
 
-**Perfis padrão:**
+**📋 Perfis padrão:**
 - JSON Genérico: Extrai valores de strings em JSON
 - XML Genérico: Extrai conteúdo de tags XML
 - Bannerlord XML: Específico para Mount & Blade II
 - RimWorld XML: Específico para RimWorld
 
-**Persistência:**
+**💾 Persistência:**
 - Perfis salvos em `profiles/` como arquivos `.json`
 - Carregamento automático na inicialização
 
@@ -478,7 +478,7 @@ Gerencia perfis personalizados para extração de texto de diferentes formatos.
 #### 🛡️ **security.py** - Segurança e Otimização
 Garante estabilidade, segurança e performance do sistema.
 
-**Classe de configuração:** `SecurityLimits`
+**⚙️ Classe de configuração:** `SecurityLimits`
 - MAX_FILE_SIZE_MB: 100 MB
 - MAX_MEMORY_USAGE_MB: 500 MB
 - MAX_CPU_PERCENT: 80%
@@ -488,18 +488,18 @@ Garante estabilidade, segurança e performance do sistema.
 - CHUNK_SIZE: 1.000 itens
 - GC_THRESHOLD_MB: 200 MB
 
-**Classe de validação:** `SecurityValidator`
+**🔒 Classe de validação:** `SecurityValidator`
 
-**Métodos de validação:**
+**✅ Métodos de validação:**
 - `validate_file_path(filepath)`: Valida caminho de arquivo (anti-path traversal)
 - `validate_file_size(filepath)`: Valida tamanho de arquivo
 - `sanitize_text(text)`: Remove padrões perigosos (XSS, scripts)
 - `sanitize_sql_param(param)`: Previne SQL injection
 - `validate_regex_pattern(pattern)`: Valida regex (anti-ReDoS)
 
-**Classe de monitoramento:** `ResourceMonitor` (Singleton)
+**📊 Classe de monitoramento:** `ResourceMonitor` (Singleton)
 
-**Métodos de monitoramento:**
+**📈 Métodos de monitoramento:**
 - `get_memory_usage_mb()`: Retorna uso de RAM em MB
 - `get_cpu_percent()`: Retorna uso de CPU em %
 - `check_resources()`: Verifica se recursos estão dentro dos limites
@@ -507,27 +507,27 @@ Garante estabilidade, segurança e performance do sistema.
 - `start_monitoring(callback)`: Inicia monitoramento contínuo
 - `stop_monitoring()`: Para monitoramento
 
-**Decoradores de segurança:**
+**🎨 Decoradores de segurança:**
 - `@safe_operation(timeout, max_retries)`: Operações com timeout e retry
 - `@memory_safe`: Verifica memória antes e depois da operação
 - `@validate_input`: Sanitiza inputs de string automaticamente
 
-**Classe de processamento:** `ChunkProcessor`
+**⚡ Classe de processamento:** `ChunkProcessor`
 - `process(items, processor, progress_callback)`: Processa itens em chunks com callback de progresso
 - `cancel()`: Cancela processamento
 
-**Classe watchdog:** `OperationWatchdog`
+**⏰ Classe watchdog:** `OperationWatchdog`
 - `start()`: Inicia watchdog
 - `reset()`: Reseta timer
 - `stop()`: Para watchdog
 
-**Classe de auto-save:** `AutoSaveManager`
+**💾 Classe de auto-save:** `AutoSaveManager`
 - `start()`: Inicia auto-save periódico
 - `stop()`: Para auto-save
 - `mark_changed()`: Marca alterações não salvas
 - `mark_saved()`: Marca como salvo
 
-**Funções utilitárias:**
+**🛠️ Funções utilitárias:**
 - `get_system_info()`: Retorna informações do sistema (CPU, RAM, disco)
 - `is_safe_to_proceed()`: Verifica se é seguro prosseguir com operações
 
@@ -536,29 +536,29 @@ Garante estabilidade, segurança e performance do sistema.
 #### 📝 **logger.py** - Sistema de Logs
 Registra todas as operações do sistema com rotação diária.
 
-**Classe principal:** `AppLogger`
+**📦 Classe principal:** `AppLogger`
 
-**Métodos de log:**
+**📝 Métodos de log:**
 - `debug(message)`: Registra mensagem de debug
 - `info(message)`: Registra mensagem informativa
 - `warning(message)`: Registra aviso
 - `error(message, exc_info)`: Registra erro
 - `critical(message, exc_info)`: Registra erro crítico
 
-**Métodos especializados:**
+**🎯 Métodos especializados:**
 - `log_file_operation(operation, filepath, success)`: Registra operações de arquivo
 - `log_translation(original, translated, method)`: Registra traduções realizadas
 - `log_api_call(api_name, success, error)`: Registra chamadas de API
 - `log_profile_operation(operation, profile_name, success)`: Registra operações com perfis
 - `get_recent_logs(lines)`: Retorna logs recentes
 
-**Características:**
+**✨ Características:**
 - Logs salvos em `logs/game_translator_YYYYMMDD.log`
 - Formato timestamped: `YYYY-MM-DD HH:MM:SS - Nome - Level - Mensagem`
 - Dual output: arquivo (INFO+) e console (WARNING+)
 - Rotação diária automática
 
-**Instância global:**
+**🌐 Instância global:**
 - `app_logger`: Instância global compartilhada
 
 ---
@@ -566,30 +566,30 @@ Registra todas as operações do sistema com rotação diária.
 #### 📄 **file_processor.py** - Processamento de Arquivos
 Extrai, processa e reinsere traduções em arquivos JSON/XML.
 
-**Classe de dados:** `TranslationEntry`
+**📋 Classe de dados:** `TranslationEntry`
 - `index`: Índice da entrada
 - `original_text`: Texto original
 - `translated_text`: Texto traduzido
 - `position`: Posição no arquivo
 - `context`: Contexto (linha completa)
 
-**Classe principal:** `FileProcessor`
+**📦 Classe principal:** `FileProcessor`
 
-**Métodos de arquivo:**
+**📁 Métodos de arquivo:**
 - `load_file(filepath)`: Carrega arquivo para processamento
 - `save_file(filepath, content, create_backup)`: Salva arquivo traduzido com backup opcional
 
-**Métodos de extração:**
+**🔍 Métodos de extração:**
 - `extract_texts()`: Extrai textos traduzíveis do arquivo
 - `_extract_json_default()`: Extração padrão para JSON
 - `_extract_xml_default()`: Extração padrão para XML
 - `_extract_with_profile()`: Extração usando perfil de regex personalizado
 
-**Métodos de tradução:**
+**🌐 Métodos de tradução:**
 - `apply_translations(translations)`: Aplica traduções ao conteúdo original
 - `get_statistics()`: Retorna estatísticas (total, traduzidos, pendentes, progresso)
 
-**Características:**
+**✨ Características:**
 - Suporta arquivos JSON e XML
 - Preserva 100% da estrutura original
 - Backup automático em `backups/` com timestamp
@@ -601,9 +601,9 @@ Extrai, processa e reinsere traduções em arquivos JSON/XML.
 #### 🖥️ **gui/main_window.py** - Interface Gráfica
 Interface gráfica completa construída com PySide6 (Qt).
 
-**Classe principal:** `MainWindow`
+**📦 Classe principal:** `MainWindow`
 
-**Características principais:**
+**✨ Características principais:**
 - Tema escuro profissional
 - Tabela editável com ajuste automático de altura
 - Seleção múltipla de linhas
@@ -613,7 +613,7 @@ Interface gráfica completa construída com PySide6 (Qt).
 - Barra de progresso para operações longas
 - Editor de perfis de regex
 
-**Funcionalidades:**
+**🎯 Funcionalidades:**
 - Importar/exportar arquivos JSON e XML
 - Tradução manual, por memória e por API
 - Aplicar traduções seletivas (linhas selecionadas)
@@ -626,31 +626,31 @@ Interface gráfica completa construída com PySide6 (Qt).
 
 ### 🔧 Fluxo de Trabalho do Sistema
 
-1. **Inicialização:**
+1. **🚀 Inicialização:**
    - `main.py` inicia a aplicação
    - `MainWindow` carrega ou cria banco de dados
    - `RegexProfileManager` carrega perfis disponíveis
    - `ResourceMonitor` inicia monitoramento de recursos
 
-2. **Importação de Arquivo:**
+2. **📁 Importação de Arquivo:**
    - `FileProcessor` carrega e analisa o arquivo
    - Aplica perfil de regex selecionado
    - Extrai textos traduzíveis
    - Remove duplicatas
 
-3. **Tradução:**
-   - **Manual:** Usuário edita diretamente na tabela
-   - **Memória:** `TranslationMemory` busca traduções existentes
-   - **Inteligente:** `SmartTranslator` aplica padrões aprendidos
-   - **API:** `TranslationAPIManager` usa APIs externas com fallback
+3. **🌐 Tradução:**
+   - **✍️ Manual:** Usuário edita diretamente na tabela
+   - **💾 Memória:** `TranslationMemory` busca traduções existentes
+   - **🧠 Inteligente:** `SmartTranslator` aplica padrões aprendidos
+   - **🤖 API:** `TranslationAPIManager` usa APIs externas com fallback
 
-4. **Salvamento:**
+4. **💾 Salvamento:**
    - `FileProcessor` aplica traduções ao conteúdo original
    - Cria backup automático
    - Salva arquivo traduzido
    - `TranslationMemory` persiste novas traduções
 
-5. **Segurança:**
+5. **🛡️ Segurança:**
    - `SecurityValidator` valida todos os inputs
    - `ResourceMonitor` monitora RAM/CPU continuamente
    - `ChunkProcessor` processa grandes volumes em chunks
