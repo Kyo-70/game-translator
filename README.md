@@ -12,38 +12,27 @@ Sistema profissional de tradução para arquivos JSON e XML de jogos e mods, com
 ### Método 1: Instalador Automático (Recomendado)
 
 1. **Baixe** ou extraia todos os arquivos do projeto
-2. **Execute** `INSTALAR.bat` como administrador
+2. **Clique com botão direito** em `INSTALAR.ps1` e selecione **"Executar com PowerShell"**
 3. **Selecione** a opção `[1] Instalação Completa`
-4. **Aguarde** a instalação automática
+4. **Aguarde** a instalação automática com visual moderno e animações
 5. **Pronto!** O executável estará em `dist\GameTranslator.exe`
 
 ### Método 2: Execução Direta (Desenvolvimento)
 
 1. Certifique-se de ter Python 3.8+ instalado
-2. Execute `EXECUTAR.bat`
+2. Execute `EXECUTAR.ps1` (clique com botão direito → "Executar com PowerShell")
 3. As dependências serão instaladas automaticamente
-
-### 🔄 Manter Atualizado
-
-Para manter o Game Translator sempre atualizado:
-
-1. **Execute** `ATUALIZAR.bat`
-2. **Selecione** a opção `[1] Atualizar Repositório Completo`
-3. **Aguarde** a sincronização com a versão mais recente
-4. **Pronto!** Todas as melhorias e correções serão aplicadas automaticamente
-
-> 💡 **Dica**: Execute `ATUALIZAR.bat` regularmente para obter novos recursos e correções de bugs!
 
 ## 📋 Arquivos do Instalador
 
 | Arquivo | Descrição |
 |---------|-----------|
-| `INSTALAR.bat` | 🚀 Instalador completo com menu interativo |
-| `EXECUTAR.bat` | ▶️ Executa o programa rapidamente |
-| `VERIFICAR_SISTEMA.bat` | 🔍 Verifica compatibilidade do sistema com **cores no terminal** |
-| `ATUALIZAR.bat` | 🔄 Atualiza o repositório e dependências automaticamente |
+| `INSTALAR.ps1` | 🚀 Instalador completo com menu interativo e visual moderno |
+| `EXECUTAR.ps1` | ▶️ Executa o programa rapidamente com interface animada |
+| `VERIFICAR_SISTEMA.ps1` | 🔍 Verifica compatibilidade do sistema com **cores no terminal** |
+| `build_exe.ps1` | 🔨 Script para criar o executável standalone |
 
-> **Novo! 🎨** Os scripts agora utilizam **cores personalizadas no terminal**:
+> **Novo! 🎨** Os scripts PowerShell utilizam **visual moderno com animações**:
 > - ✅ **Verde brilhante** para operações bem-sucedidas
 > - ❌ **Vermelho brilhante** para erros
 > - ⚠️ **Amarelo brilhante** para avisos
@@ -51,16 +40,7 @@ Para manter o Game Translator sempre atualizado:
 > - 🔷 **Azul brilhante** para seções
 > - 🌟 **Branco brilhante** para destaques
 > - 💜 **Magenta brilhante** para títulos
-
-### 🔄 Novo: Sistema de Atualização Automática
-
-O arquivo `ATUALIZAR.bat` oferece:
-- **Atualização Completa**: Sincroniza o repositório Git e atualiza todas as dependências
-- **Verificação de Atualizações**: Verifica se há novas versões disponíveis
-- **Atualização de Dependências**: Atualiza apenas os pacotes Python
-- **Recriar Executável**: Reconstrói o arquivo .exe após atualizações
-- **Verificação de Estado**: Mostra o estado atual do repositório Git
-- **Interface Colorida**: Menu interativo com cores personalizadas para melhor visualização
+> - 🎬 **Animações suaves** e efeitos visuais gradientes
 
 ## 🎯 Características Principais
 
@@ -77,6 +57,8 @@ O arquivo `ATUALIZAR.bat` oferece:
 - **Auto-ajuste de Altura**: Linhas da tabela se ajustam automaticamente ao tamanho do conteúdo
 - **Ajuste de Colunas**: Arraste as bordas das colunas para ajustar a largura conforme necessário
 - **Visualizador de Banco**: Veja, edite e exclua traduções salvas (tecla Delete)
+- **Editor de Perfis Regex**: Crie e teste perfis personalizados em tempo real
+- **Atalhos de Teclado**: Mais de 10 atalhos para agilizar o trabalho (Ctrl+Z para desfazer!)
 - **Progresso em Tempo Real**: Acompanhe o status das operações
 - **Monitor de Recursos**: Visualize uso de RAM e CPU
 
@@ -142,7 +124,7 @@ Ao iniciar, o programa solicita um banco de dados:
 
 ## 🗄️ Visualizador de Banco de Dados
 
-Acesse via **Menu > Banco de Dados > Visualizar** ou botão **"🗄️ Ver Banco"**:
+Acesse via **Menu > Banco de Dados > Visualizar** ou botão **"🗄️ Ver Banco"** ou atalho **Ctrl+B**:
 
 - **Buscar**: Encontre traduções específicas
 - **Filtrar**: Por categoria
@@ -150,7 +132,35 @@ Acesse via **Menu > Banco de Dados > Visualizar** ou botão **"🗄️ Ver Banco
 - **Excluir**: Remova traduções incorretas (botão 🗑️ ou tecla Delete)
 - **Ajustar Colunas**: Arraste as bordas das colunas para ajustar a largura horizontalmente
 - **Auto-ajuste Vertical**: As alturas das linhas se ajustam automaticamente ao conteúdo
-- **Exportar/Importar**: CSV para backup ou compartilhamento
+- **Exportar/Importar**: CSV para backup ou compartilhamento (Ctrl+E para exportar)
+
+## ✨ Editor de Perfis Regex
+
+Crie e teste perfis personalizados com interface visual moderna:
+
+- **Teste em Tempo Real**: Veja os resultados enquanto digita
+- **Destacar Capturas**: Visualize o que será extraído
+- **Validação Automática**: Detecta erros de sintaxe regex
+- **Salvar e Carregar**: Gerencie múltiplos perfis
+- **Padrões de Captura e Exclusão**: Configure ambos os tipos
+
+Acesse via **Menu > Ferramentas > Editor de Perfis Regex**
+
+## ⌨️ Atalhos de Teclado
+
+| Atalho | Ação | Descrição |
+|--------|------|-----------|
+| **Ctrl+C** | Copiar | Copia linhas selecionadas (original + tradução) |
+| **Ctrl+V** | Colar | Cola traduções nas linhas selecionadas |
+| **Ctrl+Z** | Desfazer | Desfaz última ação (até 50 ações) |
+| **Ctrl+O** | Importar | Importar arquivo XML ou JSON |
+| **Ctrl+S** | Salvar | Salvar traduções no arquivo |
+| **Ctrl+D** | Abrir BD | Abrir banco de dados existente |
+| **Ctrl+Shift+N** | Novo BD | Criar novo banco de dados |
+| **Ctrl+B** | Ver Banco | Visualizar banco de dados |
+| **Ctrl+E** | Exportar | Exportar traduções para CSV |
+| **Ctrl+Q** | Sair | Fechar aplicativo |
+| **Delete** | Limpar | Limpar traduções das linhas selecionadas |
 
 ## 🎮 Perfis Pré-configurados
 
@@ -187,10 +197,10 @@ Acesse via **Menu > Banco de Dados > Visualizar** ou botão **"🗄️ Ver Banco
 
 ```
 game-translator/
-├── 📄 INSTALAR.bat          # Instalador principal
-├── 📄 EXECUTAR.bat          # Execução rápida
-├── 📄 VERIFICAR_SISTEMA.bat # Verificação de compatibilidade (com cores!)
-├── 📄 ATUALIZAR.bat         # Atualizador do repositório (NOVO!)
+├── 📄 INSTALAR.ps1          # Instalador principal (PowerShell)
+├── 📄 EXECUTAR.ps1          # Execução rápida (PowerShell)
+├── 📄 VERIFICAR_SISTEMA.ps1 # Verificação de compatibilidade (PowerShell)
+├── 📄 build_exe.ps1         # Script para criar executável
 ├── 📄 requirements.txt      # Dependências Python
 ├── 📄 README.md             # Este arquivo
 ├── 📁 src/                  # Código-fonte
@@ -204,9 +214,12 @@ game-translator/
 │   ├── logger.py            # Sistema de logs
 │   ├── verificar_sistema.py # Verificação do sistema com cores
 │   └── gui/
-│       └── main_window.py   # Interface gráfica
+│       ├── main_window.py   # Interface gráfica principal
+│       └── regex_editor.py  # Editor visual de perfis regex
 ├── 📁 profiles/             # Perfis de regex salvos
+├── 📁 bds/                  # Bancos de dados de exemplo
 ├── 📁 logs/                 # Arquivos de log
+├── 📁 docs/                 # Documentação adicional
 └── 📁 dist/                 # Executável gerado
     └── GameTranslator.exe
 ```
@@ -246,7 +259,7 @@ O programa implementa múltiplas camadas de proteção:
 **Solução:**
 1. Baixe Python em [python.org](https://www.python.org/downloads/)
 2. Durante instalação, marque **"Add Python to PATH"**
-3. Reinicie o instalador
+3. Reinicie o instalador (execute `INSTALAR.ps1` novamente)
 
 ### Erro ao criar executável
 
@@ -255,9 +268,9 @@ O programa implementa múltiplas camadas de proteção:
 ```
 
 **Solução:**
-1. Execute `VERIFICAR_SISTEMA.bat`
+1. Execute `VERIFICAR_SISTEMA.ps1`
 2. Instale dependências faltantes
-3. Tente novamente
+3. Tente novamente com `build_exe.ps1`
 
 ### Programa lento ou travando
 
@@ -275,6 +288,20 @@ O programa implementa múltiplas camadas de proteção:
 3. Crie um perfil personalizado
 
 ## 📝 Criar Perfil Personalizado
+
+### Opção 1: Editor Visual (Recomendado) ✨
+
+1. Abra **Menu > Ferramentas > Editor de Perfis Regex**
+2. Clique em **"➕ Novo Perfil"**
+3. Configure:
+   - 📝 **Nome e descrição** do perfil
+   - 📄 **Tipo de arquivo** (XML ou JSON)
+   - 🎯 **Padrões de captura** (regex para extrair textos)
+   - 🚫 **Padrões de exclusão** (regex para ignorar)
+4. **Teste em tempo real** com seu arquivo
+5. **Salve** o perfil
+
+### Opção 2: Edição Manual 📄
 
 1. Crie arquivo em `profiles/MeuPerfil.json`:
 
@@ -299,12 +326,14 @@ O programa implementa múltiplas camadas de proteção:
 
 ## 🔄 Atualizações Futuras
 
-- [ ] Suporte para YAML e INI
-- [ ] Editor visual de perfis
-- [ ] Modo colaborativo em rede
-- [ ] Mais APIs de tradução
-- [ ] Corretor ortográfico integrado
-- [ ] Exportação para formatos de tradução (PO, XLIFF)
+- [ ] 🌐 Suporte para YAML e INI
+- [ ] 🎨 Editor visual de perfis (✅ Implementado na v1.2.1!)
+- [ ] 👥 Modo colaborativo em rede
+- [ ] 🔌 Mais APIs de tradução
+- [ ] ✍️ Corretor ortográfico integrado
+- [ ] 📤 Exportação para formatos de tradução (PO, XLIFF)
+- [ ] 🔍 Busca e substituição em massa
+- [ ] 📊 Estatísticas detalhadas de tradução
 
 ## 📄 Licença
 
@@ -316,15 +345,43 @@ Desenvolvido por **Manus AI**
 
 ---
 
+## 🎉 Novidades da Versão 1.2.1
+
+### ✨ Novos Recursos
+- **Editor Visual de Perfis Regex**: Crie e teste perfis personalizados em tempo real
+- **Atalhos de Teclado Expandidos**: Mais de 10 atalhos para máxima produtividade
+- **Desfazer/Refazer**: Ctrl+Z para desfazer até 50 ações
+- **Scripts PowerShell Modernizados**: Visual com animações e gradientes coloridos
+- **Melhorias no Auto-ajuste**: Células se expandem automaticamente ao editar
+
+### 🔧 Melhorias
+- Interface mais responsiva e fluida
+- Melhor gerenciamento de memória
+- Logs mais detalhados
+- Validação aprimorada de regex
+
+### 🐛 Correções
+- Correção de problemas de visualização ao editar células
+- Melhor compatibilidade com Windows 11
+- Estabilidade geral aprimorada
+
+---
+
 ## 💡 Dicas Rápidas
 
-> 🎯 **Use bancos separados** para cada projeto de tradução
+> 🎯 **Use bancos separados** para cada projeto de tradução - organize melhor seu trabalho!
 
-> ⚡ **Traduza textos únicos primeiro** - o sistema aprende e aplica automaticamente
+> ⚡ **Traduza textos únicos primeiro** - o sistema aprende e aplica automaticamente aos similares
 
-> 💾 **Exporte seu banco regularmente** para backup
+> 💾 **Exporte seu banco regularmente** para backup usando Ctrl+E
 
 > 🔍 **Verifique o perfil de regex** se textos não forem extraídos corretamente
+
+> ⌨️ **Use atalhos de teclado** - Ctrl+C/V para copiar/colar, Ctrl+Z para desfazer!
+
+> 🎨 **Experimente o Editor de Regex** - teste padrões em tempo real antes de usar
+
+> 🗑️ **Tecla Delete limpa traduções** - selecione linhas e pressione Delete para limpar
 
 ---
 
