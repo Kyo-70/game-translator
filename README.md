@@ -13,6 +13,7 @@ Sistema profissional de tradução para arquivos JSON e XML de jogos e mods, com
 
 1. **Baixe** ou extraia todos os arquivos do projeto
 2. **Clique com botão direito** em `INSTALAR.ps1` e selecione **"Executar com PowerShell"**
+   - Se encontrar erro de política de execução, abra PowerShell como administrador e execute: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 3. **Selecione** a opção `[1] Instalação Completa`
 4. **Aguarde** a instalação automática com visual moderno e animações
 5. **Pronto!** O executável estará em `dist\GameTranslator.exe`
@@ -327,7 +328,7 @@ O programa implementa múltiplas camadas de proteção:
 ## 🔄 Atualizações Futuras
 
 - [ ] 🌐 Suporte para YAML e INI
-- [ ] 🎨 Editor visual de perfis (✅ Implementado na v1.2.1!)
+- [x] 🎨 Editor visual de perfis (Implementado na v1.2.1!)
 - [ ] 👥 Modo colaborativo em rede
 - [ ] 🔌 Mais APIs de tradução
 - [ ] ✍️ Corretor ortográfico integrado
