@@ -935,6 +935,75 @@ class SettingsDialog(QDialog):
         security_layout.addStretch()
         tabs.addTab(security_tab, "Segurança")
         
+        # Tab de Tradução Inteligente
+        smart_tab = QWidget()
+        smart_layout = QVBoxLayout(smart_tab)
+        
+        # Grupo de Memória Sensível
+        sensitive_group = QGroupBox("🧠 Memória Sensível a Padrões")
+        sensitive_layout = QVBoxLayout()
+        
+        # Descrição
+        sensitive_info = QLabel(
+            "<b>O que é a Memória Sensível?</b><br><br>"
+            "Quando ativada, o sistema traduz automaticamente textos que seguem "
+            "padrões similares a traduções já existentes no banco de dados.<br><br>"
+            "<b>Exemplo:</b><br>"
+            "• Se você traduziu \"Soldier 01\" para \"Soldado 01\"<br>"
+            "• \"Soldier 02\", \"Soldier 03\", etc. serão automaticamente traduzidos<br>"
+            "• Para \"Soldado 02\", \"Soldado 03\", etc.<br><br>"
+            "<b>Padrões suportados:</b><br>"
+            "• Texto + Espaço + Número (Soldier 01)<br>"
+            "• Texto + Underscore + Número (Item_001)<br>"
+            "• Texto + Hífen + Número (Level-01)"
+        )
+        sensitive_info.setWordWrap(True)
+        sensitive_info.setStyleSheet("background-color: #2a3a4a; padding: 10px; border-radius: 5px;")
+        sensitive_layout.addWidget(sensitive_info)
+        
+        # Checkbox para ativar/desativar
+        self.sensitive_memory_checkbox = QCheckBox("Ativar Memória Sensível a Padrões")
+        self.sensitive_memory_checkbox.setStyleSheet("font-weight: bold; font-size: 14px;")
+        
+        # Obtém o estado atual do SmartTranslator (se disponível)
+        parent_window = self.parent()
+        if hasattr(parent_window, 'smart_translator') and parent_window.smart_translator:
+            self.sensitive_memory_checkbox.setChecked(
+                parent_window.smart_translator.is_sensitive_memory_enabled()
+            )
+        else:
+            self.sensitive_memory_checkbox.setChecked(True)  # Padrão: ativado
+        
+        self.sensitive_memory_checkbox.stateChanged.connect(self._on_sensitive_memory_changed)
+        sensitive_layout.addWidget(self.sensitive_memory_checkbox)
+        
+        # Status atual
+        self.sensitive_status_label = QLabel()
+        self._update_sensitive_status()
+        sensitive_layout.addWidget(self.sensitive_status_label)
+        
+        sensitive_group.setLayout(sensitive_layout)
+        smart_layout.addWidget(sensitive_group)
+        
+        # Grupo de Informações sobre Tradução Inteligente
+        info_group = QGroupBox("ℹ️ Sobre a Tradução Inteligente")
+        info_layout = QVBoxLayout()
+        
+        info_text = QLabel(
+            "<b>A tradução inteligente funciona em 3 níveis:</b><br><br>"
+            "<b>1. Busca Exata:</b> Procura tradução idêntica no banco de dados<br><br>"
+            "<b>2. Memória Sensível:</b> Aplica padrões numéricos aprendidos<br><br>"
+            "<b>3. Variações:</b> Detecta variações comuns (Light/Heavy, Small/Large, etc.)"
+        )
+        info_text.setWordWrap(True)
+        info_layout.addWidget(info_text)
+        
+        info_group.setLayout(info_layout)
+        smart_layout.addWidget(info_group)
+        
+        smart_layout.addStretch()
+        tabs.addTab(smart_tab, "Tradução Inteligente")
+        
         # Tab de Logs
         logs_tab = QWidget()
         logs_layout = QVBoxLayout(logs_tab)
@@ -1103,6 +1172,53 @@ class SettingsDialog(QDialog):
         monitor = ResourceMonitor()
         self.memory_label.setText(f"Memória em uso: {monitor.get_memory_usage_mb():.1f} MB")
         self.cpu_label.setText(f"CPU: {monitor.get_cpu_percent():.1f}%")
+    
+    def _on_sensitive_memory_changed(self, state):
+        """
+        Callback quando o estado da memória sensível é alterado.
+        
+        Args:
+            state: Estado do checkbox (Qt.Checked ou Qt.Unchecked)
+        """
+        enabled = state == Qt.Checked
+        
+        # Atualiza o SmartTranslator na janela principal
+        parent_window = self.parent()
+        if hasattr(parent_window, 'smart_translator') and parent_window.smart_translator:
+            parent_window.smart_translator.set_sensitive_memory_enabled(enabled)
+            
+            status = "ativada" if enabled else "desativada"
+            app_logger.info(f"Memória sensível {status}")
+        
+        # Atualiza o label de status
+        self._update_sensitive_status()
+    
+    def _update_sensitive_status(self):
+        """
+        Atualiza o label de status da memória sensível.
+        """
+        parent_window = self.parent()
+        
+        if hasattr(parent_window, 'smart_translator') and parent_window.smart_translator:
+            enabled = parent_window.smart_translator.is_sensitive_memory_enabled()
+            
+            if enabled:
+                self.sensitive_status_label.setText(
+                    "✅ <b>Status:</b> Memória sensível <span style='color: #4ecdc4;'>ATIVADA</span> - "
+                    "Padrões numéricos serão aplicados automaticamente"
+                )
+                self.sensitive_status_label.setStyleSheet("color: #4ecdc4;")
+            else:
+                self.sensitive_status_label.setText(
+                    "⚠️ <b>Status:</b> Memória sensível <span style='color: #ffa500;'>DESATIVADA</span> - "
+                    "Apenas traduções exatas serão aplicadas"
+                )
+                self.sensitive_status_label.setStyleSheet("color: #ffa500;")
+        else:
+            self.sensitive_status_label.setText(
+                "⚠️ <b>Status:</b> Conecte a um banco de dados para usar esta funcionalidade"
+            )
+            self.sensitive_status_label.setStyleSheet("color: #888;")
 
 # ============================================================================
 # JANELA PRINCIPAL
@@ -1406,6 +1522,11 @@ class MainWindow(QMainWindow):
         self.db_info_label.setStyleSheet("color: #ffa500; font-weight: bold;")
         main_layout.addWidget(self.db_info_label)
         
+        # Info do arquivo atual em tradução
+        self.current_file_label = QLabel("📄 Nenhum arquivo carregado")
+        self.current_file_label.setStyleSheet("color: #888; font-weight: bold;")
+        main_layout.addWidget(self.current_file_label)
+        
         # Barra de ferramentas
         toolbar_layout = self._create_toolbar()
         main_layout.addLayout(toolbar_layout)
@@ -1487,6 +1608,21 @@ class MainWindow(QMainWindow):
         self.btn_smart_translate.clicked.connect(self.apply_smart_translations)
         self.btn_smart_translate.setEnabled(False)
         layout.addWidget(self.btn_smart_translate)
+        
+        # Botão toggle memória sensível
+        self.btn_toggle_sensitive = QPushButton("🧠 Sensível: ON")
+        self.btn_toggle_sensitive.setToolTip(
+            "Memória Sensível a Padrões:\n"
+            "Quando ATIVADA, traduz automaticamente padrões numéricos.\n"
+            "Exemplo: Se 'Soldier 01' = 'Soldado 01',\n"
+            "então 'Soldier 02' será 'Soldado 02' automaticamente.\n\n"
+            "Clique para alternar ON/OFF"
+        )
+        self.btn_toggle_sensitive.clicked.connect(self._toggle_sensitive_memory)
+        self.btn_toggle_sensitive.setStyleSheet(
+            "background-color: #2d5a27; border: 1px solid #4ecdc4;"
+        )
+        layout.addWidget(self.btn_toggle_sensitive)
         
         # Botão salvar
         self.btn_save = QPushButton("💾 Salvar")
@@ -1605,6 +1741,9 @@ class MainWindow(QMainWindow):
                 f"📊 {stats['total_translations']} traduções"
             )
             self.db_info_label.setStyleSheet("color: #4ecdc4; font-weight: bold;")
+            
+            # Atualiza botão de memória sensível
+            self._update_sensitive_button()
             
             app_logger.info(f"Banco de dados conectado: {db_path}")
         else:
@@ -1786,6 +1925,9 @@ class MainWindow(QMainWindow):
             self.status_label.setText(f"Arquivo carregado: {os.path.basename(filepath)}")
             self.progress_bar.setValue(100)
             self._update_statistics()
+            
+            # Atualiza label do arquivo atual
+            self._update_current_file_label(filepath)
             
             # Habilita botões
             self.btn_auto_translate.setEnabled(True)
@@ -2433,6 +2575,96 @@ class MainWindow(QMainWindow):
         if total > 0:
             progress = int(translated / total * 100)
             self.progress_bar.setValue(progress)
+        
+        # Atualiza label do arquivo atual com progresso
+        if self.current_file:
+            self._update_current_file_label(self.current_file)
+    
+    def _toggle_sensitive_memory(self):
+        """
+        Alterna o estado da memória sensível a padrões.
+        
+        Atualiza o botão e o SmartTranslator conforme o novo estado.
+        """
+        if not self.smart_translator:
+            QMessageBox.warning(
+                self, 
+                "Aviso", 
+                "Conecte a um banco de dados primeiro para usar a memória sensível."
+            )
+            return
+        
+        # Alterna o estado
+        new_state = self.smart_translator.toggle_sensitive_memory()
+        
+        # Atualiza o botão
+        self._update_sensitive_button(new_state)
+        
+        # Mostra feedback
+        status = "ATIVADA" if new_state else "DESATIVADA"
+        self.status_label.setText(f"Memória sensível {status}")
+        app_logger.info(f"Memória sensível {status.lower()}")
+    
+    def _update_sensitive_button(self, enabled: bool = None):
+        """
+        Atualiza a aparência do botão de memória sensível.
+        
+        Args:
+            enabled: Estado da memória sensível. Se None, obtém do SmartTranslator.
+        """
+        if enabled is None:
+            if self.smart_translator:
+                enabled = self.smart_translator.is_sensitive_memory_enabled()
+            else:
+                enabled = True  # Padrão
+        
+        if enabled:
+            self.btn_toggle_sensitive.setText("🧠 Sensível: ON")
+            self.btn_toggle_sensitive.setStyleSheet(
+                "background-color: #2d5a27; border: 1px solid #4ecdc4;"
+            )
+        else:
+            self.btn_toggle_sensitive.setText("🧠 Sensível: OFF")
+            self.btn_toggle_sensitive.setStyleSheet(
+                "background-color: #5a2d27; border: 1px solid #ff6b6b;"
+            )
+    
+    def _update_current_file_label(self, filepath: str = None):
+        """
+        Atualiza o label que mostra o arquivo atualmente em tradução.
+        
+        Args:
+            filepath: Caminho completo do arquivo. Se None, mostra mensagem padrão.
+        """
+        if filepath:
+            filename = os.path.basename(filepath)
+            # Trunca nomes muito longos
+            if len(filename) > 50:
+                filename = filename[:47] + "..."
+            
+            # Calcula progresso
+            total = len(self.entries)
+            translated = sum(1 for e in self.entries if e.translated_text)
+            
+            if total > 0:
+                progress_pct = int(translated / total * 100)
+                self.current_file_label.setText(
+                    f"📄 Arquivo: {filename} | Progresso: {progress_pct}% ({translated}/{total})"
+                )
+                
+                # Cor baseada no progresso
+                if progress_pct == 100:
+                    self.current_file_label.setStyleSheet("color: #4ecdc4; font-weight: bold;")  # Verde
+                elif progress_pct >= 50:
+                    self.current_file_label.setStyleSheet("color: #ffa500; font-weight: bold;")  # Laranja
+                else:
+                    self.current_file_label.setStyleSheet("color: #ff6b6b; font-weight: bold;")  # Vermelho
+            else:
+                self.current_file_label.setText(f"📄 Arquivo: {filename} | Sem textos extraídos")
+                self.current_file_label.setStyleSheet("color: #888; font-weight: bold;")
+        else:
+            self.current_file_label.setText("📄 Nenhum arquivo carregado")
+            self.current_file_label.setStyleSheet("color: #888; font-weight: bold;")
     
     def _open_profile_manager(self):
         """Abre gerenciador de perfis regex"""

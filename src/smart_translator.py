@@ -1,10 +1,11 @@
 """
 Módulo de Tradução Inteligente
 Implementa lógica de reaproveitamento automático e padrões numéricos
+Inclui memória sensível a padrões (ativável/desativável)
 """
 
 import re
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple
 from database import TranslationMemory
 
 class SmartTranslator:
@@ -19,6 +20,53 @@ class SmartTranslator:
         """
         self.memory = translation_memory
         self.pattern_cache: Dict[str, str] = {}
+        
+        # Configuração da memória sensível a padrões
+        self._sensitive_memory_enabled = True  # Ativado por padrão
+    
+    # ============================================================================
+    # CONFIGURAÇÃO DA MEMÓRIA SENSÍVEL
+    # ============================================================================
+    
+    def is_sensitive_memory_enabled(self) -> bool:
+        """
+        Verifica se a memória sensível a padrões está ativada.
+        
+        Returns:
+            True se a memória sensível está ativada
+        """
+        return self._sensitive_memory_enabled
+    
+    def set_sensitive_memory_enabled(self, enabled: bool):
+        """
+        Ativa ou desativa a memória sensível a padrões.
+        
+        Quando ativada, a memória sensível permite traduzir automaticamente
+        textos que seguem padrões similares a traduções existentes.
+        
+        Exemplo:
+            - Se "Soldier 01" foi traduzido para "Soldado 01"
+            - "Soldier 02", "Soldier 03", etc. serão automaticamente traduzidos
+              para "Soldado 02", "Soldado 03", etc.
+        
+        Args:
+            enabled: True para ativar, False para desativar
+        """
+        self._sensitive_memory_enabled = enabled
+    
+    def toggle_sensitive_memory(self) -> bool:
+        """
+        Alterna o estado da memória sensível.
+        
+        Returns:
+            Novo estado (True = ativado, False = desativado)
+        """
+        self._sensitive_memory_enabled = not self._sensitive_memory_enabled
+        return self._sensitive_memory_enabled
+    
+    # ============================================================================
+    # TRADUÇÃO PRINCIPAL
+    # ============================================================================
     
     def translate(self, text: str) -> Optional[str]:
         """
@@ -35,17 +83,174 @@ class SmartTranslator:
         if exact_match:
             return exact_match
         
-        # 2. Busca por padrão numérico
-        pattern_match = self._find_numeric_pattern(text)
-        if pattern_match:
-            return pattern_match
-        
-        # 3. Busca por padrão de variação
-        variation_match = self._find_variation_pattern(text)
-        if variation_match:
-            return variation_match
+        # 2. Se memória sensível está ativada, busca por padrões
+        if self._sensitive_memory_enabled:
+            # 2.1 Busca por padrão numérico sensível (ex: Soldier 01 -> Soldado 01)
+            sensitive_match = self._find_sensitive_numeric_pattern(text)
+            if sensitive_match:
+                return sensitive_match
+            
+            # 2.2 Busca por padrão numérico simples
+            pattern_match = self._find_numeric_pattern(text)
+            if pattern_match:
+                return pattern_match
+            
+            # 2.3 Busca por padrão de variação
+            variation_match = self._find_variation_pattern(text)
+            if variation_match:
+                return variation_match
         
         return None
+    
+    # ============================================================================
+    # MEMÓRIA SENSÍVEL A PADRÕES
+    # ============================================================================
+    
+    def _find_sensitive_numeric_pattern(self, text: str) -> Optional[str]:
+        """
+        Busca padrões numéricos sensíveis na memória.
+        
+        Esta função identifica textos que seguem o padrão "Base XX" onde XX é um número
+        (com ou sem zeros à esquerda) e tenta encontrar uma tradução baseada em
+        traduções existentes de padrões similares.
+        
+        Exemplos:
+            - "Soldier 01" traduzido como "Soldado 01" -> "Soldier 02" será "Soldado 02"
+            - "Item_001" traduzido como "Item_001" -> "Item_002" será "Item_002"
+            - "Level 1" traduzido como "Nível 1" -> "Level 2" será "Nível 2"
+        
+        Args:
+            text: Texto a ser verificado
+            
+        Returns:
+            Tradução com número preservado ou None
+        """
+        # Padrões suportados:
+        # 1. "Base XX" (com espaço e número com zeros à esquerda)
+        # 2. "Base_XX" (com underscore e número)
+        # 3. "BaseXX" (sem separador)
+        # 4. "Base XX" (número simples)
+        
+        patterns = [
+            # Padrão com espaço e número (com ou sem zeros): "Soldier 01", "Soldier 1"
+            (r'^(.+?)\s+(\d+)$', ' '),
+            # Padrão com underscore: "Item_01", "Item_001"
+            (r'^(.+?)_(\d+)$', '_'),
+            # Padrão com hífen: "Level-01", "Level-1"
+            (r'^(.+?)-(\d+)$', '-'),
+            # Padrão colado (apenas se terminar em número): "Soldier01"
+            (r'^(.+?)(\d+)$', ''),
+        ]
+        
+        for pattern, separator in patterns:
+            match = re.match(pattern, text)
+            if match:
+                base_text = match.group(1).strip()
+                number_str = match.group(2)
+                
+                # Preserva formato do número (zeros à esquerda)
+                number_format = len(number_str)
+                
+                # Busca traduções similares na memória
+                translation = self._find_translation_by_pattern(
+                    base_text, separator, number_format
+                )
+                
+                if translation:
+                    translated_base, trans_separator = translation
+                    # Reconstrói com o número original preservando formato
+                    return f"{translated_base}{trans_separator}{number_str}"
+        
+        return None
+    
+    def _find_translation_by_pattern(
+        self, 
+        base_text: str, 
+        separator: str, 
+        number_format: int
+    ) -> Optional[Tuple[str, str]]:
+        """
+        Busca uma tradução existente que siga o mesmo padrão.
+        
+        Args:
+            base_text: Texto base (sem número)
+            separator: Separador usado (espaço, underscore, hífen, vazio)
+            number_format: Quantidade de dígitos no número original
+            
+        Returns:
+            Tupla (base_traduzida, separador_usado) ou None
+        """
+        # Gera números de teste no mesmo formato
+        test_numbers = []
+        
+        # Testa números de 0 a 99 no formato apropriado
+        for i in range(100):
+            if number_format > 1:
+                # Formato com zeros à esquerda
+                test_numbers.append(str(i).zfill(number_format))
+            else:
+                test_numbers.append(str(i))
+        
+        # Também testa alguns números comuns
+        test_numbers.extend(['1', '01', '001', '2', '02', '002', '10', '100'])
+        test_numbers = list(set(test_numbers))  # Remove duplicatas
+        
+        for test_num in test_numbers:
+            # Constrói o texto de teste
+            if separator:
+                test_text = f"{base_text}{separator}{test_num}"
+            else:
+                test_text = f"{base_text}{test_num}"
+            
+            # Busca tradução
+            translation = self.memory.get_translation(test_text)
+            
+            if translation:
+                # Extrai a base traduzida
+                extracted = self._extract_translated_base(translation, test_num)
+                if extracted:
+                    return extracted
+        
+        return None
+    
+    def _extract_translated_base(
+        self, 
+        translation: str, 
+        original_number: str
+    ) -> Optional[Tuple[str, str]]:
+        """
+        Extrai a base traduzida e o separador de uma tradução.
+        
+        Args:
+            translation: Texto traduzido completo
+            original_number: Número original para referência
+            
+        Returns:
+            Tupla (base_traduzida, separador) ou None
+        """
+        # Tenta extrair com diferentes separadores
+        patterns = [
+            (r'^(.+?)\s+(\d+)$', ' '),      # Espaço
+            (r'^(.+?)_(\d+)$', '_'),         # Underscore
+            (r'^(.+?)-(\d+)$', '-'),         # Hífen
+            (r'^(.+?)(\d+)$', ''),           # Sem separador
+        ]
+        
+        for pattern, separator in patterns:
+            match = re.match(pattern, translation)
+            if match:
+                translated_base = match.group(1).strip() if separator else match.group(1)
+                trans_number = match.group(2)
+                
+                # Verifica se o número corresponde
+                if trans_number == original_number or int(trans_number) == int(original_number):
+                    return (translated_base, separator)
+        
+        return None
+    
+    # ============================================================================
+    # PADRÕES NUMÉRICOS SIMPLES
+    # ============================================================================
     
     def _find_numeric_pattern(self, text: str) -> Optional[str]:
         """
@@ -107,6 +312,10 @@ class SmartTranslator:
         
         return results
     
+    # ============================================================================
+    # PADRÕES DE VARIAÇÃO
+    # ============================================================================
+    
     def _find_variation_pattern(self, text: str) -> Optional[str]:
         """
         Busca padrões de variação (ex: "Heavy Armor" baseado em "Light Armor")
@@ -146,6 +355,10 @@ class SmartTranslator:
                     return result
         
         return None
+    
+    # ============================================================================
+    # TRADUÇÃO EM LOTE
+    # ============================================================================
     
     def batch_translate(self, texts: List[str]) -> Dict[str, str]:
         """
@@ -242,3 +455,54 @@ class SmartTranslator:
                     results[text] = f"{base_translation} {num}"
         
         return results
+    
+    # ============================================================================
+    # UTILITÁRIOS
+    # ============================================================================
+    
+    def get_pattern_suggestions(self, text: str) -> List[Dict[str, str]]:
+        """
+        Retorna sugestões de tradução baseadas em padrões encontrados.
+        
+        Útil para mostrar ao usuário quais padrões foram identificados
+        e como seriam traduzidos.
+        
+        Args:
+            text: Texto para analisar
+            
+        Returns:
+            Lista de dicionários com sugestões:
+            [{'pattern': 'Soldier XX', 'suggestion': 'Soldado XX', 'confidence': 'high'}]
+        """
+        suggestions = []
+        
+        if not self._sensitive_memory_enabled:
+            return suggestions
+        
+        # Analisa padrões numéricos
+        patterns = [
+            (r'^(.+?)\s+(\d+)$', ' ', 'espaço'),
+            (r'^(.+?)_(\d+)$', '_', 'underscore'),
+            (r'^(.+?)-(\d+)$', '-', 'hífen'),
+        ]
+        
+        for pattern, separator, sep_name in patterns:
+            match = re.match(pattern, text)
+            if match:
+                base_text = match.group(1).strip()
+                number_str = match.group(2)
+                
+                translation = self._find_translation_by_pattern(
+                    base_text, separator, len(number_str)
+                )
+                
+                if translation:
+                    translated_base, trans_separator = translation
+                    suggestions.append({
+                        'pattern': f"{base_text}{separator}XX",
+                        'suggestion': f"{translated_base}{trans_separator}XX",
+                        'confidence': 'alta',
+                        'separator': sep_name
+                    })
+        
+        return suggestions
