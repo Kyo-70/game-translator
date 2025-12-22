@@ -78,29 +78,44 @@ class SmartTranslator:
         Returns:
             Tradução ou None se não encontrada
         """
+        result, _ = self.translate_with_info(text)
+        return result
+    
+    def translate_with_info(self, text: str) -> Tuple[Optional[str], bool]:
+        """
+        Traduz um texto e informa se foi traduzido por padrão.
+        
+        Args:
+            text: Texto a ser traduzido
+            
+        Returns:
+            Tupla (tradução, foi_por_padrao)
+            - tradução: Texto traduzido ou None
+            - foi_por_padrao: True se foi traduzido por memória sensível/padrão
+        """
         # 1. Busca exata na memória
         exact_match = self.memory.get_translation(text)
         if exact_match:
-            return exact_match
+            return exact_match, False  # Tradução exata, não foi por padrão
         
         # 2. Se memória sensível está ativada, busca por padrões
         if self._sensitive_memory_enabled:
             # 2.1 Busca por padrão numérico sensível (ex: Soldier 01 -> Soldado 01)
             sensitive_match = self._find_sensitive_numeric_pattern(text)
             if sensitive_match:
-                return sensitive_match
+                return sensitive_match, True  # Traduzido por padrão
             
             # 2.2 Busca por padrão numérico simples
             pattern_match = self._find_numeric_pattern(text)
             if pattern_match:
-                return pattern_match
+                return pattern_match, True  # Traduzido por padrão
             
             # 2.3 Busca por padrão de variação
             variation_match = self._find_variation_pattern(text)
             if variation_match:
-                return variation_match
+                return variation_match, True  # Traduzido por padrão
         
-        return None
+        return None, False
     
     # ============================================================================
     # MEMÓRIA SENSÍVEL A PADRÕES
@@ -411,16 +426,33 @@ class SmartTranslator:
         Returns:
             Dicionário com traduções automáticas
         """
+        results, _ = self.auto_translate_batch_with_info(texts)
+        return results
+    
+    def auto_translate_batch_with_info(self, texts: List[str]) -> Tuple[Dict[str, str], Dict[str, bool]]:
+        """
+        Traduz automaticamente um lote de textos e informa quais foram por padrão.
+        
+        Args:
+            texts: Lista de textos
+            
+        Returns:
+            Tupla (traduções, padrões)
+            - traduções: Dicionário {original: tradução}
+            - padrões: Dicionário {original: foi_por_padrao}
+        """
         results = {}
+        pattern_info = {}
         
         # Agrupa textos por padrão
         patterns = {}
         
         for text in texts:
             # Verifica se já tem tradução
-            existing = self.translate(text)
+            existing, was_pattern = self.translate_with_info(text)
             if existing:
                 results[text] = existing
+                pattern_info[text] = was_pattern
                 continue
             
             # Detecta padrão
@@ -453,8 +485,9 @@ class SmartTranslator:
             if base_translation:
                 for text, num in items:
                     results[text] = f"{base_translation} {num}"
+                    pattern_info[text] = True  # Traduzido por padrão
         
-        return results
+        return results, pattern_info
     
     # ============================================================================
     # UTILITÁRIOS

@@ -78,11 +78,12 @@ SETTINGS_ORG_NAME = "ManusAI"  # Nome da organização/desenvolvedor
 SETTINGS_APP_NAME = "GameTranslator"  # Nome da aplicação
 
 # Cores para linhas da tabela (tema escuro)
-class TableColors:
+class TABLE_COLORS:
     """Cores usadas nas tabelas para manter consistência visual"""
     BASE_ROW = QColor(40, 40, 40)           # Cor de fundo para linhas pares
     ALTERNATE_ROW = QColor(50, 50, 50)      # Cor de fundo para linhas ímpares
     TRANSLATED_ROW = QColor(40, 60, 40)     # Cor de fundo para linhas traduzidas
+    PATTERN_ROW = QColor(40, 50, 70)        # Cor de fundo para linhas traduzidas por padrão (azulado)
 
 # ============================================================================
 # WORKER THREADS
@@ -1735,6 +1736,9 @@ class MainWindow(QMainWindow):
         if self.translation_memory.connect(db_path):
             self.smart_translator = SmartTranslator(self.translation_memory)
             
+            # Restaura estado da memória sensível das configurações
+            self._restore_sensitive_memory_state()
+            
             stats = self.translation_memory.get_stats()
             self.db_info_label.setText(
                 f"✅ Banco conectado: {os.path.basename(db_path)} | "
@@ -1976,10 +1980,18 @@ class MainWindow(QMainWindow):
             
             # Coluna de status
             if entry.translated_text:
-                status_item = QTableWidgetItem("✅")
+                # Verifica se foi traduzido por padrão sensível
+                if hasattr(entry, 'translated_by_pattern') and entry.translated_by_pattern:
+                    status_item = QTableWidgetItem("🧠")  # Ícone de cérebro para padrão
+                    status_item.setToolTip("Traduzido por padrão sensível")
+                    row_color = TABLE_COLORS.PATTERN_ROW  # Azulado
+                else:
+                    status_item = QTableWidgetItem("✅")
+                    row_color = TABLE_COLORS.TRANSLATED_ROW  # Verde
+                
                 for col in range(4):
                     if self.table.item(i, col):
-                        self.table.item(i, col).setBackground(TableColors.TRANSLATED_ROW)
+                        self.table.item(i, col).setBackground(row_color)
             else:
                 status_item = QTableWidgetItem("⏳")
             
@@ -2074,7 +2086,7 @@ class MainWindow(QMainWindow):
                 self.table.item(row, 3).setText("✅")
                 for col in range(4):
                     if self.table.item(row, col):
-                        self.table.item(row, col).setBackground(TableColors.TRANSLATED_ROW)
+                        self.table.item(row, col).setBackground(TABLE_COLORS.TRANSLATED_ROW)
             
             # Auto-ajusta altura da linha editada
             self._auto_adjust_row_heights()
@@ -2144,9 +2156,9 @@ class MainWindow(QMainWindow):
                     if item:
                         # Reseta cor de fundo baseado em alternating rows
                         if row % 2 == 0:
-                            item.setBackground(TableColors.BASE_ROW)
+                            item.setBackground(TABLE_COLORS.BASE_ROW)
                         else:
-                            item.setBackground(TableColors.ALTERNATE_ROW)
+                            item.setBackground(TABLE_COLORS.ALTERNATE_ROW)
                 
                 cleared_count += 1
         
@@ -2327,7 +2339,7 @@ class MainWindow(QMainWindow):
             for col in range(4):
                 item = self.table.item(row, col)
                 if item:
-                    item.setBackground(TableColors.TRANSLATED_ROW)
+                    item.setBackground(TABLE_COLORS.TRANSLATED_ROW)
             
             clipboard_index += 1  # Avança para próxima linha da área de transferência
             pasted_count += 1
@@ -2385,29 +2397,40 @@ class MainWindow(QMainWindow):
                 
                 info_message = f"todas as {len(untranslated)} linhas não traduzidas"
             
-            # Aplica tradução inteligente
-            translations = self.smart_translator.auto_translate_batch(untranslated)
+            # Aplica tradução inteligente com informação de padrão
+            translations, pattern_info = self.smart_translator.auto_translate_batch_with_info(untranslated)
             
             # Atualiza entradas
             count = 0
+            pattern_count = 0
             for entry in self.entries:
                 if not entry.translated_text and entry.original_text in translations:
                     entry.translated_text = translations[entry.original_text]
+                    # Marca se foi traduzido por padrão
+                    entry.translated_by_pattern = pattern_info.get(entry.original_text, False)
+                    if entry.translated_by_pattern:
+                        pattern_count += 1
                     count += 1
             
             # Atualiza tabela
             self._populate_table()
             self._update_statistics()
             
-            self.status_label.setText(f"Traduções inteligentes aplicadas: {count}")
+            self.status_label.setText(f"Traduções inteligentes aplicadas: {count} ({pattern_count} por padrão)")
+            
+            # Mensagem com detalhes
+            pattern_msg = ""
+            if pattern_count > 0:
+                pattern_msg = f"\n\n🧠 {pattern_count} tradução(ões) aplicada(s) por padrão sensível.\nLinhas destacadas em azul foram traduzidas por padrão."
+            
             QMessageBox.information(
                 self, 
                 "Sucesso", 
-                f"{count} traduções aplicadas automaticamente em {info_message}!\n\n"
+                f"{count} traduções aplicadas automaticamente em {info_message}!{pattern_msg}\n\n"
                 "💡 Dica: Selecione linhas específicas para aplicar tradução apenas a elas."
             )
             
-            app_logger.info(f"Traduções inteligentes aplicadas: {count}")
+            app_logger.info(f"Traduções inteligentes aplicadas: {count} (padrão: {pattern_count})")
             
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao aplicar traduções:\n{str(e)}")
@@ -2585,6 +2608,7 @@ class MainWindow(QMainWindow):
         Alterna o estado da memória sensível a padrões.
         
         Atualiza o botão e o SmartTranslator conforme o novo estado.
+        Salva a preferência no QSettings para persistência entre sessões.
         """
         if not self.smart_translator:
             QMessageBox.warning(
@@ -2597,6 +2621,9 @@ class MainWindow(QMainWindow):
         # Alterna o estado
         new_state = self.smart_translator.toggle_sensitive_memory()
         
+        # Salva preferência no QSettings
+        self._save_sensitive_memory_state(new_state)
+        
         # Atualiza o botão
         self._update_sensitive_button(new_state)
         
@@ -2604,6 +2631,38 @@ class MainWindow(QMainWindow):
         status = "ATIVADA" if new_state else "DESATIVADA"
         self.status_label.setText(f"Memória sensível {status}")
         app_logger.info(f"Memória sensível {status.lower()}")
+    
+    def _save_sensitive_memory_state(self, enabled: bool):
+        """
+        Salva o estado da memória sensível no QSettings.
+        
+        Args:
+            enabled: Estado atual (True = ativado, False = desativado)
+        """
+        try:
+            settings = QSettings(SETTINGS_ORG_NAME, SETTINGS_APP_NAME)
+            settings.setValue("sensitive_memory_enabled", enabled)
+            app_logger.debug(f"Estado da memória sensível salvo: {enabled}")
+        except Exception as e:
+            app_logger.error(f"Erro ao salvar estado da memória sensível: {e}")
+    
+    def _restore_sensitive_memory_state(self):
+        """
+        Restaura o estado da memória sensível do QSettings.
+        
+        Aplica o estado salvo ao SmartTranslator.
+        """
+        if not self.smart_translator:
+            return
+        
+        try:
+            settings = QSettings(SETTINGS_ORG_NAME, SETTINGS_APP_NAME)
+            # Padrão: True (ativado)
+            enabled = settings.value("sensitive_memory_enabled", True, type=bool)
+            self.smart_translator.set_sensitive_memory_enabled(enabled)
+            app_logger.info(f"Estado da memória sensível restaurado: {'ativada' if enabled else 'desativada'}")
+        except Exception as e:
+            app_logger.error(f"Erro ao restaurar estado da memória sensível: {e}")
     
     def _update_sensitive_button(self, enabled: bool = None):
         """

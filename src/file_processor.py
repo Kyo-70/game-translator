@@ -21,6 +21,7 @@ class TranslationEntry:
     translated_text: str = ""
     position: int = 0  # Posição no arquivo original
     context: str = ""  # Contexto (linha completa)
+    translated_by_pattern: bool = False  # Indica se foi traduzido por padrão sensível
     
 class FileProcessor:
     """Processa arquivos JSON e XML para extração e inserção de traduções"""
