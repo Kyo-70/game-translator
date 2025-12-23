@@ -115,6 +115,18 @@ except ImportError:
         ContextualSuggestionEngine = None
         ContextualSuggestion = None
 
+# Import do Discord Rich Presence
+try:
+    from discord_integration import DiscordRichPresence, init_discord, get_discord_rpc, DISCORD_AVAILABLE
+except ImportError:
+    try:
+        from src.discord_integration import DiscordRichPresence, init_discord, get_discord_rpc, DISCORD_AVAILABLE
+    except ImportError:
+        DiscordRichPresence = None
+        init_discord = None
+        get_discord_rpc = None
+        DISCORD_AVAILABLE = False
+
 # ============================================================================
 # UI CONSTANTS
 # ============================================================================
@@ -1328,6 +1340,10 @@ class MainWindow(QMainWindow):
         # Habilita drag and drop
         self.setAcceptDrops(True)
 
+        # Inicializa Discord Rich Presence
+        self.discord_rpc = None
+        self._init_discord_presence()
+
         # Log inicial
         app_logger.info("Aplicativo iniciado")
 
@@ -1497,30 +1513,23 @@ class MainWindow(QMainWindow):
         self.drag_drop.enable()
 
     def _register_shortcuts(self):
-        """Registra todos os atalhos de teclado"""
-        # Atalhos de arquivo
-        self.shortcuts.register("open_file", self.import_file, "Ctrl+O")
-        self.shortcuts.register("save_file", self.save_file, "Ctrl+S")
+        """Registra atalhos de teclado adicionais (não duplicar os do menu)"""
+        # NOTA: Atalhos como Ctrl+O, Ctrl+S, Ctrl+D, Ctrl+B, Ctrl+E, Ctrl+I, Ctrl+P,
+        # Ctrl+Q, F1 já estão registrados no menu (_create_menu_bar)
+        # Aqui registramos apenas atalhos que NÃO estão no menu
 
-        # Atalhos de tradução
+        # Atalhos de tradução (não estão no menu)
         self.shortcuts.register("translate_selected", self.apply_smart_translations, "Ctrl+T")
         self.shortcuts.register("translate_all", self.auto_translate, "Ctrl+Shift+T")
 
-        # Atalhos de busca
+        # Atalhos de busca (não está no menu)
         self.shortcuts.register("search", self._focus_search, "Ctrl+F")
 
-        # Atalhos de navegação
+        # Atalhos de navegação (não está no menu)
         self.shortcuts.register("refresh", self._reload_file, "F6")
 
-        # Atalhos de tema
+        # Atalhos de tema (não está no menu)
         self.shortcuts.register("toggle_theme", self._toggle_theme, "Ctrl+Shift+D")
-
-        # Atalhos de banco de dados
-        self.shortcuts.register("open_database", self._open_database, "Ctrl+D")
-        self.shortcuts.register("view_database", self._view_database, "Ctrl+B")
-
-        # Atalho de ajuda
-        self.shortcuts.register("help", self._show_shortcuts_help, "F1")
 
     def _toggle_theme(self):
         """Alterna entre tema claro e escuro"""
@@ -1920,7 +1929,46 @@ class MainWindow(QMainWindow):
         
         self.resource_label.setText(f"RAM: {memory:.0f} MB | CPU: {cpu:.0f}%")
         self.resource_label.setStyleSheet(f"color: {color};")
-    
+
+    # ========================================================================
+    # DISCORD RICH PRESENCE
+    # ========================================================================
+
+    def _init_discord_presence(self):
+        """Inicializa a integração com Discord Rich Presence"""
+        if not DISCORD_AVAILABLE or init_discord is None:
+            app_logger.info("Discord Rich Presence não disponível (pypresence não instalado)")
+            return
+
+        try:
+            self.discord_rpc = init_discord(self._on_discord_status_change)
+            if self.discord_rpc.is_connected:
+                self.discord_rpc.set_idle()
+                app_logger.info("Discord Rich Presence conectado")
+        except Exception as e:
+            app_logger.warning(f"Não foi possível conectar ao Discord: {e}")
+            self.discord_rpc = None
+
+    def _on_discord_status_change(self, connected: bool, message: str):
+        """Callback quando o status do Discord muda"""
+        if connected:
+            app_logger.info(f"Discord: {message}")
+        else:
+            app_logger.debug(f"Discord: {message}")
+
+    def _update_discord_status(self):
+        """Atualiza o status do Discord com o arquivo atual"""
+        if not self.discord_rpc or not self.discord_rpc.is_connected:
+            return
+
+        if self.current_file and self.entries:
+            file_name = os.path.basename(self.current_file)
+            translated = sum(1 for e in self.entries if e.translated_text)
+            total = len(self.entries)
+            self.discord_rpc.set_translating(file_name, translated, total)
+        else:
+            self.discord_rpc.set_idle()
+
     def _prompt_database_selection(self):
         """Solicita seleção de banco de dados ao iniciar"""
         dialog = DatabaseSelectorDialog(self)
@@ -2132,14 +2180,17 @@ class MainWindow(QMainWindow):
             
             # Atualiza label do arquivo atual
             self._update_current_file_label(filepath)
-            
+
             # Habilita botões
             self.btn_auto_translate.setEnabled(True)
             self.btn_smart_translate.setEnabled(True)
             self.btn_save.setEnabled(True)
-            
+
             app_logger.log_file_operation("import", filepath, True)
-            
+
+            # Atualiza status do Discord
+            self._update_discord_status()
+
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao importar arquivo:\n{str(e)}")
             app_logger.error(f"Erro ao importar arquivo: {e}", exc_info=True)
@@ -2220,14 +2271,17 @@ class MainWindow(QMainWindow):
             
             # Atualiza label do arquivo atual
             self._update_current_file_label(filepath)
-            
+
             # Habilita botões
             self.btn_auto_translate.setEnabled(True)
             self.btn_smart_translate.setEnabled(True)
             self.btn_save.setEnabled(True)
-            
+
             app_logger.log_file_operation("import", filepath, True)
-            
+
+            # Atualiza status do Discord
+            self._update_discord_status()
+
         except Exception as e:
             self.toast.error(f"Erro ao carregar: {str(e)}")
             app_logger.error(f"Erro ao carregar arquivo via drag-drop: {e}", exc_info=True)
@@ -2390,9 +2444,12 @@ class MainWindow(QMainWindow):
             
             # Auto-ajusta altura da linha editada
             self._auto_adjust_row_heights()
-            
+
             self._update_statistics()
-    
+
+            # Atualiza status do Discord
+            self._update_discord_status()
+
     def _clear_selected_translations(self):
         """
         Limpa as traduções das linhas selecionadas.
@@ -2837,39 +2894,48 @@ class MainWindow(QMainWindow):
         
         try:
             self.status_label.setText("Salvando arquivo...")
-            
+
+            # Atualiza status do Discord para "salvando"
+            if self.discord_rpc and self.discord_rpc.is_connected:
+                self.discord_rpc.set_saving(os.path.basename(self.current_file))
+
             # Cria dicionário de traduções
             translations = {
                 entry.original_text: entry.translated_text
                 for entry in self.entries
                 if entry.translated_text
             }
-            
+
             # Aplica traduções
             translated_content = self.file_processor.apply_translations(translations)
-            
+
             # Salva arquivo (com backup automático)
             if self.file_processor.save_file(self.current_file, translated_content, create_backup=True):
                 self.status_label.setText("Arquivo salvo com sucesso!")
-                
+
                 # Obtém o caminho da pasta de backups
                 file_dir = os.path.dirname(os.path.abspath(self.current_file))
                 backup_dir = os.path.join(file_dir, "backups")
-                
+
                 QMessageBox.information(
-                    self, 
-                    "Sucesso", 
+                    self,
+                    "Sucesso",
                     f"Arquivo traduzido salvo com sucesso!\n\n"
                     f"Um backup do original foi criado em:\n{backup_dir}"
                 )
                 app_logger.log_file_operation("save", self.current_file, True)
+
+                # Restaura status do Discord para "traduzindo"
+                self._update_discord_status()
             else:
                 raise Exception("Falha ao salvar arquivo")
-                
+
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao salvar arquivo:\n{str(e)}")
             app_logger.error(f"Erro ao salvar arquivo: {e}", exc_info=True)
             self.status_label.setText("Erro ao salvar arquivo")
+            # Restaura status do Discord
+            self._update_discord_status()
     
     def open_settings(self):
         """Abre diálogo de configurações"""
@@ -3086,10 +3152,17 @@ class MainWindow(QMainWindow):
                 <tr><td><span class="key">Ctrl + T</span></td><td class="desc">Aplicar memória de tradução inteligente</td></tr>
                 <tr><td><span class="key">Ctrl+Shift+T</span></td><td class="desc">Traduzir usando API configurada</td></tr>
                 <tr><td><span class="key">F6</span></td><td class="desc">Recarregar arquivo original</td></tr>
+                <tr><td><span class="key">Ctrl + F</span></td><td class="desc">Buscar na tabela</td></tr>
                 <tr><td><span class="key">Ctrl + C</span></td><td class="desc">Copiar linhas selecionadas</td></tr>
                 <tr><td><span class="key">Ctrl + V</span></td><td class="desc">Colar traduções copiadas</td></tr>
+                <tr><td><span class="key">Delete</span></td><td class="desc">Limpar tradução selecionada</td></tr>
             </table>
-            
+
+            <div class="category">🎨 Interface</div>
+            <table>
+                <tr><td><span class="key">Ctrl+Shift+D</span></td><td class="desc">Alternar tema claro/escuro</td></tr>
+            </table>
+
             <div class="category">❓ Ajuda</div>
             <table>
                 <tr><td><span class="key">F1</span></td><td class="desc">Mostrar esta tela de ajuda</td></tr>
@@ -3205,14 +3278,18 @@ class MainWindow(QMainWindow):
         
         # Salva configurações da janela
         self._save_window_settings()
-        
+
+        # Desconecta do Discord
+        if self.discord_rpc:
+            self.discord_rpc.disconnect()
+
         # Fecha conexão com banco de dados
         if self.translation_memory:
             self.translation_memory.close()
-        
+
         # Para timer de recursos
         self.resource_timer.stop()
-        
+
         app_logger.info("Aplicativo encerrado")
         event.accept()
     
