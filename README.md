@@ -1,197 +1,190 @@
-# 🚀 Tradutor de Arquivos para Jogos
+# 🧠 Tradutor_XML-JSON
 
-![Licença](https://img.shields.io/github/license/Kyo-70/Tradutor_XML-JSON?style=for-the-badge&color=blue)
-![Versão](https://img.shields.io/badge/versão-1.2.0-blue?style=for-the-badge)
-![Python](https://img.shields.io/badge/python-3.8+-green?style=for-the-badge)
-
-Uma ferramenta de tradução poderosa e inteligente, projetada para facilitar a localização de jogos e mods. Com uma interface moderna e recursos avançados, ela automatiza grande parte do trabalho manual, garantindo consistência, segurança e agilidade.
-
----
-
-## 📖 Índice
-
-- [✨ Principais Funcionalidades](#-principais-funcionalidades)
-- [🏁 Como Começar](#-como-começar)
-- [🕹️ Como Usar](#️-como-usar)
-- [🗄️ Visualizador de Banco de Dados](#️-visualizador-de-banco-de-dados)
-- [🔧 Perfis de Extração](#-perfis-de-extração)
-- [⚙️ Configurações e Segurança](#️-configurações-e-segurança)
-- [🐛 Solução de Problemas](#-solução-de-problemas)
-- [📁 Estrutura do Projeto](#-estrutura-do-projeto)
-- [📄 Licença](#-licença)
+![Status](https://img.shields.io/badge/status-ativo-4CAF50?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Interface](https://img.shields.io/badge/UI-PySide6-1A9FFF?style=for-the-badge)
+![APIs](https://img.shields.io/badge/APIs-Google%2FDeepL%2FMyMemory%2FLibre-673ab7?style=for-the-badge)
+![Downloads](https://img.shields.io/badge/Downloads-Automático-009688?style=for-the-badge)
+![Licença](https://img.shields.io/badge/Licença-MIT-FFB300?style=for-the-badge)
+![Arquitetura](https://img.shields.io/badge/Arquitetura-Modular-795548?style=for-the-badge)
+![Tradução](https://img.shields.io/badge/Formato-XML%20%7C%20JSON-7E57C2?style=for-the-badge)
+![Build](https://img.shields.io/badge/Build-Manual-616161?style=for-the-badge)
 
 ---
 
-## ✨ Principais Funcionalidades
+## 🎨 Visão Geral
 
-O tradutor foi construído com foco em eficiência e segurança, oferecendo um conjunto completo de ferramentas para tradutores.
+**Tradutor_XML-JSON** é uma ferramenta avançada para tradução de arquivos XML e JSON utilizados em jogos e mods.  
+Oferece uma interface gráfica moderna, memória de tradução inteligente, perfis customizáveis para extração de texto e integração com diversas APIs.
 
-| Emoji | Funcionalidade | Descrição |
-| :---: | --- | --- |
-| 🖥️ | **Interface Gráfica Moderna** | Desenvolvida em PySide6 com um tema escuro, focada em usabilidade e conforto visual. |
-| 📚 | **Memória de Tradução (SQLite)** | Salve suas traduções em um banco de dados local (`.db`). O sistema reutiliza traduções existentes, economizando tempo e custos de API. |
-| 🧠 | **Tradução Inteligente** | Reconhece e traduz automaticamente textos com padrões, como `Soldier 1` -> `Soldado 1` ou variações como `Light/Heavy Armor`. |
-| ☁️ | **Suporte a Múltiplas APIs** | Integre com DeepL, Google Translate, LibreTranslate e MyMemory para tradução automática em lote. |
-| 💰 | **Otimizado para Planos Gratuitos** | O sistema monitora o uso de caracteres e controla a taxa de requisições para não exceder os limites dos planos gratuitos das APIs. |
-| 🔧 | **Perfis de Extração (Regex)** | Crie e edite perfis de extração com expressões regulares (Regex) para se adaptar a qualquer estrutura de arquivo `XML` ou `JSON`. |
-| 🔬 | **Editor de Regex Integrado** | Uma ferramenta dedicada para criar, testar e gerenciar seus perfis de extração diretamente na aplicação. |
-| ⚡ | **Processamento Assíncrono** | A interface permanece responsiva durante operações pesadas, como carregar arquivos grandes ou traduzir em lote, graças ao uso de threads. |
-| 🛡️ | **Segurança e Otimização** | Inclui validadores de segurança, monitoramento de uso de CPU/RAM e otimizações para evitar travamentos e garantir estabilidade. |
-| 💾 | **Backup Automático** | Cria automaticamente um backup do arquivo original com timestamp antes de salvar as traduções, garantindo que você nunca perca seu trabalho. |
-| 📝 | **Sistema de Logs** | Registra todas as operações importantes em arquivos de log diários para facilitar a depuração e o acompanhamento de atividades. |
+Um ambiente criado para tradutores, modders e desenvolvedores que precisam de velocidade, precisão e organização.
 
 ---
 
-## 🏁 Como Começar
+# 🌟 Funcionalidades Principais
 
-Siga os passos abaixo para configurar e executar o projeto em sua máquina local.
+## 🧠 Memória de Tradução (SQLite)
+- Armazena traduções anteriores.  
+- Evita retrabalho.  
+- Mantém consistência entre arquivos.  
+- Indexação inteligente para pesquisas rápidas.
 
-### Pré-requisitos
+## 🌐 Suporte a múltiplas APIs
+- Google Translate  
+- DeepL  
+- MyMemory  
+- LibreTranslate  
+- Módulo preparado para plugins de novas APIs
 
-- **Python 3.8+**
-- **pip** (gerenciador de pacotes do Python)
+## 🎯 Perfis Avançados de Extração
+Perfis baseados em **Regex**, permitindo:
+- Extração precisa de frases  
+- Exclusão de elementos indesejados  
+- Adaptação para cada estrutura de jogo  
 
-### Instalação
+### Perfis incluídos:
+- **Bannerlord**  
+- **RimWorld**  
+- **Terminator: Dark Fate – Defiance**
 
-1. **Clone o repositório:**
-   ```sh
-   git clone https://github.com/Kyo-70/Tradutor_XML-JSON.git
-   cd Tradutor_XML-JSON
-   ```
+## 🛡 Backups Automáticos
+Antes de sobrescrever:  
+✔ Cria backup  
+✔ Gera logs  
+✔ Mantém histórico seguro
 
-2. **Instale as dependências:**
-   ```sh
-   pip install -r requirements.txt
-   ```
+## ⚙️ Interface Moderna
+- PySide6  
+- Tema escuro  
+- Controles fluidos  
+- Layout modular
 
-3. **Execute o programa:**
-   - **Via Python:**
-     ```sh
-     python src/main.py
-     ```
-   - **Via PowerShell (Windows):**
-     ```sh
-     ./EXECUTAR.ps1
-     ```
-
----
-
-## 🕹️ Como Usar
-
-1.  **Abra o Arquivo**: Use o botão `Abrir Arquivo` para carregar um arquivo `XML` ou `JSON`.
-2.  **Memória de Tradução**: Crie ou selecione um arquivo de banco de dados (`.db`) para salvar e reutilizar suas traduções.
-3.  **Selecione o Perfil**: Escolha um dos perfis de extração da lista. Para arquivos com estrutura customizada, use o `Editor de Perfis`.
-4.  **Traduza**: 
-    - **Manualmente**: Clique duas vezes na célula da coluna "Tradução" para editar.
-    - **Copiar/Colar em Massa**: Use `Ctrl+C` para copiar múltiplas linhas, edite em um editor de texto externo (como Bloco de Notas) e cole de volta com `Ctrl+V`.
-    - **Tradução Automática**: Configure sua chave de API (DeepL, Google, etc.) e use o botão `Traduzir com API`.
-    - **Tradução Inteligente**: Use o botão `Tradução Inteligente` para preencher automaticamente textos com base na memória de tradução.
-5.  **Salve**: Clique em `Salvar Arquivo` para aplicar as traduções. Um backup do arquivo original será criado na pasta `backups/`.
+## 🚀 Processamento Assíncrono
+O programa permanece responsivo mesmo durante:
+- Extração  
+- Processamento  
+- Tradução massiva  
 
 ---
 
-## 🗄️ Visualizador de Banco de Dados
+# 🧭 Instalação
 
-Acesse via **Menu > Banco de Dados > Visualizar** ou pelo botão na interface principal:
+## 📌 Pré-requisitos
+- Python **3.8+**
+- Pip atualizado
+- Pacotes do `requirements.txt`
 
-- **Buscar**: Encontre traduções específicas no seu banco de dados.
-- **Filtrar**: Por categoria, para organizar melhor suas traduções.
-- **Editar**: Duplo clique para corrigir ou refinar uma tradução salva.
-- **Excluir**: Remova entradas incorretas com a tecla `Delete`.
-- **Exportar/Importar**: Faça backup ou compartilhe sua memória de tradução em formato `CSV`.
+## 📥 Instalar dependências
 
----
-
-## 🔧 Perfis de Extração
-
-O programa já vem com perfis pré-configurados para os formatos mais comuns.
-
-| Nome do Perfil | Tipo de Arquivo | Descrição |
-| --- | :---: | --- |
-| `JSON Genérico` | `JSON` | Extrai valores de chaves de texto em arquivos JSON. |
-| `XML Genérico` | `XML` | Extrai o conteúdo de texto dentro de tags XML. |
-| `Bannerlord XML` | `XML` | Perfil específico para arquivos de tradução do Mount & Blade II: Bannerlord. |
-| `RimWorld XML` | `XML` | Perfil otimizado para os arquivos de linguagem do RimWorld. |
-| `Terminator Dark Fate` | `XML` | Perfil ajustado para os arquivos XML do jogo Terminator: Dark Fate. |
-
-### Criando um Perfil Personalizado
-
-1.  Vá para a pasta `profiles/`.
-2.  Crie um novo arquivo `.json` (ex: `meu-jogo.json`).
-3.  Use a estrutura abaixo:
-
-```json
-{
-  "name": "Meu Jogo Especial",
-  "description": "Perfil para extrair diálogos do meu jogo.",
-  "capture_patterns": [
-    "<dialogue>([^<]+)</dialogue>"
-  ],
-  "exclude_patterns": [
-    "<id>.*?</id>"
-  ],
-  "file_type": "xml"
-}
+```bash
+pip install -r requirements.txt
 ```
 
-4.  Reinicie o programa e seu novo perfil aparecerá na lista!
+## 📥 Instalar via PowerShell (Windows)
+
+```powershell
+./INSTALAR.ps1
+```
 
 ---
 
-## ⚙️ Configurações e Segurança
+# ▶️ Como Executar
 
-### APIs de Tradução
+### Pelo Python:
+```bash
+python src/main.py
+```
 
-1.  Acesse **"⚙️ Config"** na interface.
-2.  Cole sua chave de API (DeepL, Google, etc.).
-3.  Selecione a API que deseja usar como ativa.
-
-### Limites de Segurança
-
-O programa possui limites internos para garantir a estabilidade e proteger seu sistema:
-
-| Limite | Valor Padrão | Descrição |
-| --- | --- | --- |
-| Tamanho Máximo de Arquivo | 100 MB | Previne o carregamento de arquivos excessivamente grandes. |
-| Uso Máximo de RAM | 500 MB | Impede que o aplicativo consuma toda a memória do sistema. |
-| Uso Máximo de CPU | 80% | Evita sobrecarga do processador. |
-| Entradas Máximas por Arquivo | 100.000 | Limita o número de textos extraídos de um único arquivo. |
+### Pelo PowerShell:
+```powershell
+./EXECUTAR.ps1
+```
 
 ---
 
-## 🐛 Solução de Problemas
-
--   **Textos não são extraídos**: Verifique se o perfil de Regex selecionado é compatível com a estrutura do seu arquivo. Tente usar os perfis genéricos ou crie um personalizado.
--   **Programa lento ou travando**: Monitore o uso de RAM e CPU na aba de status. Arquivos muito grandes podem exigir mais recursos. Feche outras aplicações para liberar memória.
--   **Traduções não são salvas na memória**: Certifique-se de que você selecionou ou criou um arquivo de banco de dados (`.db`) no início.
-
----
-
-## 📁 Estrutura do Projeto
+# 📂 Estrutura do Projeto
 
 ```
 Tradutor_XML-JSON/
-├── 📄 EXECUTAR.ps1         # Script para execução rápida (PowerShell)
-├── 📄 INSTALAR.ps1         # Script de instalação (PowerShell)
-├── 📄 requirements.txt      # Dependências do projeto
-├── 📄 README.md             # Este arquivo
-├── 📁 src/                  # Código-fonte da aplicação
-│   ├── main.py              # Ponto de entrada
-│   ├── database.py          # Gerenciador da memória de tradução
-│   ├── file_processor.py    # Lógica de extração e salvamento
-│   ├── smart_translator.py  # Lógica de tradução inteligente
-│   ├── translation_api.py   # Integração com APIs externas
-│   ├── regex_profiles.py    # Gerenciador de perfis de Regex
-│   ├── security.py          # Módulos de segurança e otimização
-│   └── gui/                 # Módulos da interface gráfica
-│       └── main_window.py   # Janela principal
-├── 📁 profiles/             # Perfis de extração salvos em JSON
-├── 📁 logs/                 # Arquivos de log gerados
-└── 📁 backups/              # Backups automáticos dos arquivos originais
+├── src/
+│   ├── main.py
+│   ├── database.py
+│   ├── file_processor.py
+│   ├── smart_translator.py
+│   ├── translation_api.py
+│   ├── regex_profiles.py
+│   └── gui/
+│       └── main_window.py
+├── profiles/
+├── logs/
+├── backups/
+├── requirements.txt
+├── EXECUTAR.ps1
+├── INSTALAR.ps1
+└── README.md
 ```
 
 ---
 
-## 📄 Licença
+# 🔧 Como Criar seus Próprios Perfis
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+Um perfil é um arquivo JSON no formato:
+
+```json
+{
+    "extract": ["regex aqui"],
+    "exclude": ["regex aqui"],
+    "description": "Descrição do perfil"
+}
+```
+
+Você pode criar quantos perfis quiser para:
+- Jogos  
+- Engines  
+- Modpacks  
+- Estruturas XML/JSON específicas  
+
+---
+
+# 📘 Documentação de APIs
+
+Cada API possui configuração própria.  
+Acesse no menu:
+
+**Configurações → APIs**
+
+Informações que pode inserir:
+- Chave  
+- Endpoint  
+- Limite de requisições  
+- Modo gratuito/pago  
+
+---
+
+# 💡 Dicas de Uso
+
+- Utilize memória para manter consistência entre arquivos.  
+- Crie perfis distintos para cada jogo.  
+- Ative logs detalhados ao depurar.  
+- Nunca edite arquivos de jogo sem backup.  
+- Mantenha Regex limpos e bem documentados.  
+
+---
+
+# 🤝 Contribuindo
+
+Pull Requests são bem-vindos!
+
+Para contribuir:
+1. Faça um Fork  
+2. Crie uma branch com sua mudança  
+3. Documente o que alterou  
+4. Envie o PR com clareza  
+
+---
+
+# 📄 Licença
+
+Este projeto está sob a **MIT License**.
+
+---
