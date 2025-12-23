@@ -9,6 +9,7 @@ from typing import List, Optional, Dict, Tuple
 import time
 import json
 import os
+import threading
 from datetime import datetime, timedelta
 from collections import OrderedDict
 
@@ -39,42 +40,74 @@ class APILimits:
 # ============================================================================
 
 class TranslationCache:
-    """Cache em memória para evitar requisições duplicadas à API"""
-    
+    """
+    Cache em memória thread-safe para evitar requisições duplicadas à API.
+
+    Usa RLock para garantir segurança em operações concorrentes.
+    Implementa padrão LRU (Least Recently Used) para gerenciamento de memória.
+    """
+
     def __init__(self, max_size: int = 10000):
         """
-        Inicializa o cache
-        
+        Inicializa o cache thread-safe
+
         Args:
             max_size: Número máximo de entradas no cache
         """
         self.max_size = max_size
         self.cache: OrderedDict = OrderedDict()
-    
+        self._lock = threading.RLock()
+
     def get(self, text: str, source_lang: str, target_lang: str) -> Optional[str]:
-        """Busca tradução no cache"""
+        """
+        Busca tradução no cache de forma thread-safe.
+
+        Args:
+            text: Texto original
+            source_lang: Idioma de origem
+            target_lang: Idioma de destino
+
+        Returns:
+            Tradução cacheada ou None se não encontrada
+        """
         key = f"{source_lang}:{target_lang}:{text}"
-        
-        if key in self.cache:
-            # Move para o final (LRU)
-            self.cache.move_to_end(key)
-            return self.cache[key]
-        
+
+        with self._lock:
+            if key in self.cache:
+                # Move para o final (LRU)
+                self.cache.move_to_end(key)
+                return self.cache[key]
+
         return None
-    
+
     def set(self, text: str, translation: str, source_lang: str, target_lang: str):
-        """Armazena tradução no cache"""
+        """
+        Armazena tradução no cache de forma thread-safe.
+
+        Args:
+            text: Texto original
+            translation: Texto traduzido
+            source_lang: Idioma de origem
+            target_lang: Idioma de destino
+        """
         key = f"{source_lang}:{target_lang}:{text}"
-        
-        # Remove item mais antigo se necessário
-        if len(self.cache) >= self.max_size:
-            self.cache.popitem(last=False)
-        
-        self.cache[key] = translation
-    
+
+        with self._lock:
+            # Remove item mais antigo se necessário
+            if len(self.cache) >= self.max_size:
+                self.cache.popitem(last=False)
+
+            self.cache[key] = translation
+
     def clear(self):
-        """Limpa o cache"""
-        self.cache.clear()
+        """Limpa o cache de forma thread-safe"""
+        with self._lock:
+            self.cache.clear()
+
+    def size(self) -> int:
+        """Retorna o número de entradas no cache"""
+        with self._lock:
+            return len(self.cache)
 
 # ============================================================================
 # CONTADOR DE USO (MONITORA LIMITES)
@@ -219,35 +252,142 @@ class UsageTracker:
 # RATE LIMITER (RESPEITA LIMITES DE REQUISIÇÕES)
 # ============================================================================
 
+import random
+
+
 class RateLimiter:
-    """Controla taxa de requisições para respeitar limites das APIs"""
-    
+    """
+    Controla taxa de requisições para respeitar limites das APIs.
+
+    Implementa exponential backoff com jitter para retentativas robustas.
+    Thread-safe para uso em múltiplas threads.
+    """
+
     def __init__(self):
         self.last_request: Dict[str, float] = {}
+        self.failure_count: Dict[str, int] = {}
+        self._lock = threading.RLock()
         self.limits = {
             'deepl': 1.0 / APILimits.DEEPL_FREE_REQUESTS_PER_SECOND,
             'google': 1.0 / APILimits.GOOGLE_FREE_REQUESTS_PER_SECOND,
             'libre': 1.0 / APILimits.LIBRE_REQUESTS_PER_SECOND,
             'mymemory': 1.0 / APILimits.MYMEMORY_REQUESTS_PER_SECOND
         }
-    
+        # Configurações de backoff
+        self.base_delay = 1.0  # Delay base em segundos
+        self.max_delay = 60.0  # Delay máximo em segundos
+        self.max_retries = 5   # Número máximo de retentativas
+
     def wait_if_needed(self, api: str):
         """
-        Aguarda se necessário para respeitar rate limit
-        
+        Aguarda se necessário para respeitar rate limit.
+
+        Thread-safe.
+
         Args:
             api: Nome da API
         """
-        if api not in self.last_request:
-            self.last_request[api] = 0
-        
-        min_interval = self.limits.get(api, 0.5)
-        elapsed = time.time() - self.last_request[api]
-        
-        if elapsed < min_interval:
-            time.sleep(min_interval - elapsed)
-        
-        self.last_request[api] = time.time()
+        with self._lock:
+            if api not in self.last_request:
+                self.last_request[api] = 0
+
+            min_interval = self.limits.get(api, 0.5)
+            elapsed = time.time() - self.last_request[api]
+
+            if elapsed < min_interval:
+                time.sleep(min_interval - elapsed)
+
+            self.last_request[api] = time.time()
+
+    def calculate_backoff(self, api: str, attempt: int = None) -> float:
+        """
+        Calcula o tempo de espera usando exponential backoff com jitter.
+
+        Formula: min(base * 2^attempt + jitter, max_delay)
+
+        Args:
+            api: Nome da API
+            attempt: Número da tentativa (None = usa contador interno)
+
+        Returns:
+            Tempo de espera em segundos
+        """
+        if attempt is None:
+            attempt = self.failure_count.get(api, 0)
+
+        # Exponential backoff
+        delay = min(self.base_delay * (2 ** attempt), self.max_delay)
+
+        # Adiciona jitter (0-10% do delay)
+        jitter = delay * random.uniform(0, 0.1)
+
+        return delay + jitter
+
+    def record_failure(self, api: str):
+        """
+        Registra uma falha para a API (incrementa contador de backoff).
+
+        Args:
+            api: Nome da API
+        """
+        with self._lock:
+            self.failure_count[api] = self.failure_count.get(api, 0) + 1
+
+    def record_success(self, api: str):
+        """
+        Registra sucesso para a API (reseta contador de backoff).
+
+        Args:
+            api: Nome da API
+        """
+        with self._lock:
+            self.failure_count[api] = 0
+
+    def should_retry(self, api: str) -> bool:
+        """
+        Verifica se deve tentar novamente baseado no número de falhas.
+
+        Args:
+            api: Nome da API
+
+        Returns:
+            True se deve tentar novamente
+        """
+        return self.failure_count.get(api, 0) < self.max_retries
+
+    def wait_with_backoff(self, api: str) -> bool:
+        """
+        Aguarda usando exponential backoff antes de retentar.
+
+        Args:
+            api: Nome da API
+
+        Returns:
+            True se deve continuar tentando, False se excedeu limite
+        """
+        if not self.should_retry(api):
+            return False
+
+        delay = self.calculate_backoff(api)
+        time.sleep(delay)
+        return True
+
+    def get_failure_count(self, api: str) -> int:
+        """Retorna o número de falhas para a API"""
+        return self.failure_count.get(api, 0)
+
+    def reset(self, api: str = None):
+        """
+        Reseta contadores de falha.
+
+        Args:
+            api: Nome da API específica ou None para resetar todas
+        """
+        with self._lock:
+            if api:
+                self.failure_count[api] = 0
+            else:
+                self.failure_count.clear()
 
 # ============================================================================
 # CLASSES DE TRADUTORES

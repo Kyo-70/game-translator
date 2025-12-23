@@ -60,6 +60,24 @@ except ImportError:
     except ImportError:
         from src.gui.regex_editor import RegexProfileManagerDialog, ImportTranslationDialog
 
+# Import dos componentes de UX
+try:
+    from gui.ux_components import (
+        ToastManager, ThemeManager, ThemeType,
+        KeyboardShortcutsManager, DragDropHandler
+    )
+except ImportError:
+    try:
+        from ux_components import (
+            ToastManager, ThemeManager, ThemeType,
+            KeyboardShortcutsManager, DragDropHandler
+        )
+    except ImportError:
+        from src.gui.ux_components import (
+            ToastManager, ThemeManager, ThemeType,
+            KeyboardShortcutsManager, DragDropHandler
+        )
+
 # ============================================================================
 # UI CONSTANTS
 # ============================================================================
@@ -1226,10 +1244,10 @@ class SettingsDialog(QDialog):
 
 class MainWindow(QMainWindow):
     """Janela principal do aplicativo"""
-    
+
     def __init__(self):
         super().__init__()
-        
+
         # Inicializa componentes
         self.translation_memory = TranslationMemory()  # Sem conexão inicial
         self.profile_manager = RegexProfileManager()
@@ -1238,33 +1256,43 @@ class MainWindow(QMainWindow):
         self.file_processor = None
         self.current_file = None
         self.entries = []
-        
+
         # Monitor de recursos
         self.resource_monitor = ResourceMonitor()
-        
+
         # Configura interface
         self.setWindowTitle("Game Translator - Sistema de Tradução para Jogos e Mods")
         self.setGeometry(DEFAULT_WINDOW_X, DEFAULT_WINDOW_Y, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
-        
+
+        # Inicializa gerenciador de temas
+        self.theme_manager = ThemeManager(QApplication.instance())
+        self._current_theme = ThemeType.DARK
+
         # Aplica tema escuro
         self._apply_dark_theme()
-        
+
         # Cria interface
         self._create_menu_bar()
         self._create_ui()
         self._create_status_bar()
-        
+
+        # Inicializa componentes de UX após UI
+        self._init_ux_components()
+
         # Restaura configurações da janela após UI estar criada
         self._restore_window_settings()
-        
+
         # Timer para atualizar status de recursos
         self.resource_timer = QTimer()
         self.resource_timer.timeout.connect(self._update_resource_status)
         self.resource_timer.start(5000)  # A cada 5 segundos
-        
+
+        # Habilita drag and drop
+        self.setAcceptDrops(True)
+
         # Log inicial
         app_logger.info("Aplicativo iniciado")
-        
+
         # Solicita seleção de banco de dados
         QTimer.singleShot(100, self._prompt_database_selection)
     
@@ -1414,7 +1442,129 @@ class MainWindow(QMainWindow):
                 border: 1px solid #555;
             }
         """)
-    
+
+    def _init_ux_components(self):
+        """Inicializa componentes de UX (toast, atalhos, drag-drop)"""
+        # Gerenciador de notificações toast
+        self.toast = ToastManager(self)
+
+        # Gerenciador de atalhos de teclado
+        self.shortcuts = KeyboardShortcutsManager(self)
+        self._register_shortcuts()
+
+        # Handler de drag and drop
+        self.drag_drop = DragDropHandler(self)
+        self.drag_drop.set_accepted_extensions(['.json', '.xml', '.db', '.csv'])
+        self.drag_drop.set_callback(self._handle_dropped_file)
+        self.drag_drop.enable()
+
+    def _register_shortcuts(self):
+        """Registra todos os atalhos de teclado"""
+        # Atalhos de arquivo
+        self.shortcuts.register("open_file", self._open_file, "Ctrl+O")
+        self.shortcuts.register("save_file", self._save_translations, "Ctrl+S")
+
+        # Atalhos de tradução
+        self.shortcuts.register("translate_selected", self._translate_selected, "Ctrl+T")
+        self.shortcuts.register("translate_all", self._translate_all, "Ctrl+Shift+T")
+
+        # Atalhos de busca
+        self.shortcuts.register("search", self._focus_search, "Ctrl+F")
+
+        # Atalhos de navegação
+        self.shortcuts.register("refresh", self._reload_file, "F5")
+
+        # Atalhos de tema
+        self.shortcuts.register("toggle_theme", self._toggle_theme, "Ctrl+Shift+D")
+
+        # Atalhos de banco de dados
+        self.shortcuts.register("open_database", self._show_database_viewer, "Ctrl+D")
+
+        # Atalho de ajuda
+        self.shortcuts.register("help", self._show_shortcuts_help, "F1")
+
+    def _toggle_theme(self):
+        """Alterna entre tema claro e escuro"""
+        if self._current_theme == ThemeType.DARK:
+            self._current_theme = ThemeType.LIGHT
+            self.theme_manager.set_theme(ThemeType.LIGHT)
+            self.toast.info("Tema claro ativado")
+        else:
+            self._current_theme = ThemeType.DARK
+            self._apply_dark_theme()
+            self.toast.info("Tema escuro ativado")
+
+    def _focus_search(self):
+        """Foca no campo de busca"""
+        if hasattr(self, 'search_input'):
+            self.search_input.setFocus()
+            self.search_input.selectAll()
+
+    def _reload_file(self):
+        """Recarrega o arquivo atual"""
+        if self.current_file:
+            self._load_file(self.current_file)
+            self.toast.info("Arquivo recarregado")
+
+    def _show_shortcuts_help(self):
+        """Mostra diálogo com atalhos de teclado"""
+        shortcuts_text = """
+<h3>Atalhos de Teclado</h3>
+<table>
+<tr><td><b>Ctrl+O</b></td><td>Abrir arquivo</td></tr>
+<tr><td><b>Ctrl+S</b></td><td>Salvar traduções</td></tr>
+<tr><td><b>Ctrl+T</b></td><td>Traduzir selecionados</td></tr>
+<tr><td><b>Ctrl+Shift+T</b></td><td>Traduzir todos</td></tr>
+<tr><td><b>Ctrl+F</b></td><td>Buscar</td></tr>
+<tr><td><b>F5</b></td><td>Recarregar arquivo</td></tr>
+<tr><td><b>Ctrl+D</b></td><td>Abrir banco de dados</td></tr>
+<tr><td><b>Ctrl+Shift+D</b></td><td>Alternar tema claro/escuro</td></tr>
+<tr><td><b>F1</b></td><td>Mostrar esta ajuda</td></tr>
+<tr><td><b>Delete</b></td><td>Excluir tradução selecionada</td></tr>
+</table>
+
+<h3>Arrastar e Soltar</h3>
+<p>Arraste arquivos .json, .xml, .db ou .csv diretamente para a janela.</p>
+        """
+        QMessageBox.information(self, "Atalhos de Teclado", shortcuts_text)
+
+    def _handle_dropped_file(self, filepath: str):
+        """Processa arquivo arrastado para a janela"""
+        ext = filepath.lower().split('.')[-1] if '.' in filepath else ''
+
+        if ext == 'db':
+            # Arquivo de banco de dados
+            if self.translation_memory.connect(filepath):
+                self.smart_translator = SmartTranslator(self.translation_memory)
+                self.toast.success(f"Banco de dados conectado: {os.path.basename(filepath)}")
+                self._update_db_info()
+            else:
+                self.toast.error("Erro ao conectar ao banco de dados")
+
+        elif ext == 'csv':
+            # Arquivo CSV para importação
+            imported, errors = self.translation_memory.import_from_file(filepath)
+            if imported > 0:
+                self.toast.success(f"Importadas {imported} traduções ({errors} erros)")
+            else:
+                self.toast.error("Erro ao importar CSV")
+
+        elif ext in ['json', 'xml']:
+            # Arquivo de tradução
+            self._load_file(filepath)
+            self.toast.success(f"Arquivo carregado: {os.path.basename(filepath)}")
+
+    def dragEnterEvent(self, event):
+        """Evento de entrada de drag"""
+        if self.drag_drop.handle_drag_enter(event):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        """Evento de drop"""
+        self.drag_drop.handle_drop(event)
+
     def _create_menu_bar(self):
         """Cria barra de menu"""
         menubar = self.menuBar()
